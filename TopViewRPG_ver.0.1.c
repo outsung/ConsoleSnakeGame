@@ -25,7 +25,17 @@ typedef struct MouseInfo
 
 }MouseInfo;
 
+typedef struct PlayerPositin
+{
+	int x;
+	int y;
+
+}PlayerPositin;
+
+
 MouseInfo UserMouse = { 0 };
+
+
 
 int StartMenu;
 
@@ -41,7 +51,7 @@ void CSgotoxy(int x, int y)
 	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), CursorPosition);
 }
 
-void MouseInput()
+void T_MouseInput()
 {
 	INPUT_RECORD rec;
 	DWORD dw, dwmode;
@@ -85,6 +95,112 @@ void SetColor(unsigned short color)
 	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
 }
 
+// Clnt
+void T_N_cSend(void* _pArgs)
+{	
+	/*
+		Send 내용
+		{
+			Send_ID
+
+			player position
+			mouseInfo
+		}
+	*/
+
+	SOCKET cSocket = *(SOCKET*)_pArgs;
+
+	char Data_Send[100] = { 0 };
+	int Data_SendSize;
+
+	while (TRUE)
+	{
+		//sprintf(Data_Send, "", );
+		Data_SendSize = strlen(Data_Send);
+		send(cSocket, Data_Send, Data_SendSize, 0);
+	}
+	
+
+	//sprintf(system_str, "mode con cols=%d lines=%d", nWidth / FsizeX, nHeight / FsizeY);
+	//send(cSocket, data_send, strlen(data_send), 0);
+
+}
+void T_N_cRecv(void* _pArgs)
+{
+	/*
+	Secv 내용
+	{
+		Send_ID 
+		
+		0
+		player position
+		mouseInfo
+		1
+		player position
+		mouseInfo
+		2
+		player position
+		mouseInfo
+		3
+		player position
+		mouseInfo
+	}
+	*/
+
+	SOCKET cSocket = *(SOCKET*)_pArgs;
+
+	char Data_Recv[1024] = { 0 };
+	int Data_RecvSize;
+
+	do
+	{
+		Data_RecvSize = recv(cSocket, Data_Recv, sizeof(Data_Recv), 0);
+		
+		/*
+			Data_Recv 처리
+
+		*/
+
+	} while (Data_RecvSize > 0);
+
+}
+
+// Serv
+void T_N_sSend()
+{
+	/*
+	Send 내용
+	{
+		0~3
+		Send_ID 
+
+		0
+		player position
+		mouseInfo
+		1
+		player position
+		mouseInfo
+		2
+		player position
+		mouseInfo
+		3
+		player position
+		mouseInfo
+	} * 4
+	*/
+
+}
+void T_N_sRecv()
+{
+	/*
+	Send 내용
+	{
+		player position
+		mouseInfo
+	} * 4
+	*/
+
+}
 
 // 함수 정의
 void B_ConsloeInit();
@@ -102,8 +218,9 @@ int main()
 {
 	// 기본 콘솔 정리
 	B_ConsloeInit();
+
 	// 마우스 입력 받기
-	_beginthreadex(NULL, 0, (_beginthreadex_proc_type)MouseInput, NULL, 0, NULL);
+	_beginthreadex(NULL, 0, (_beginthreadex_proc_type)T_MouseInput, NULL, 0, NULL);
 
 	// 시작 화면
 	StartMenu = P_Start();
@@ -118,6 +235,7 @@ int main()
 	case 2:
 		// -- 2. 서버 들어가기 --
 		N_ServerConnection();
+		Game_Start();
 		break;
 
 	case 3:
@@ -418,11 +536,60 @@ void N_ServerMake()
 // 서버 들어가기
 void N_ServerConnection()
 {
-	while (TRUE)
+
+	WSADATA wsa_data;
+	SOCKET clnt_sock;
+	SOCKADDR_IN serv_addr;
+
+	char sAddr[15] = { 0 };
+	int sPort;
+
+	char data_send[100] = { 0 };
+
+	printf("서버 IP : ");
+	scanf_s("%s", sAddr, 15);
+	printf("포트 번호 : ");
+	scanf_s("%s", data_send, 100);
+	sPort = atoi(data_send);
+
+	if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0)
 	{
+		printf("Load WinSock 2.2 DLL Error");
 		exit(1);
 	}
+
+	clnt_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (clnt_sock == INVALID_SOCKET)
+	{
+		printf("Socket Error");
+		WSACleanup();
+		exit(1);
+	}
+
+	memset(&serv_addr, 0, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(sPort);
+	serv_addr.sin_addr.s_addr = inet_addr(sAddr);
+	//inet_pton(AF_INET, sAddr, &serv_addr.sin_addr);
+
+	if (connect(clnt_sock, (SOCKADDR*)& serv_addr, sizeof(serv_addr)) == SOCKET_ERROR)
+	{
+		printf("Connection Error\n");
+		closesocket(clnt_sock);
+		WSACleanup();
+		exit(1);
+	}
+	else
+	{
+		printf("연결 성공,,,\n시작,,,\n");
+	}
+
+
+	while (TRUE)
+	{
+	}
 }
+
 
 // 게임 나가기
 void P_GameExit()
