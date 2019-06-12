@@ -16,6 +16,11 @@
 
 #pragma comment( lib, "ws2_32.lib")
 
+
+// 필수 메크로 정의
+#define MAX_PLAYER 4
+
+
 // 필수 변수 정의
 typedef struct MouseInfo
 {
@@ -32,12 +37,10 @@ typedef struct PlayerPositin
 
 }PlayerPositin;
 
-
 MouseInfo UserMouse = { 0 };
 
-
-
 int StartMenu;
+
 
 // 필수 함수 정의
 int IsKeyDown(int key)
@@ -95,6 +98,13 @@ void SetColor(unsigned short color)
 	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
 }
 
+void G_Clean()
+{
+	COORD sCoord = { 0,0 };
+	DWORD dw;
+	FillConsoleOutputCharacter(GetStdHandle(STD_OUTPUT_HANDLE), ' ', 300 * 100, sCoord, &dw);
+}
+
 // Clnt
 void T_N_cSend(void* _pArgs)
 {	
@@ -115,7 +125,9 @@ void T_N_cSend(void* _pArgs)
 
 	while (TRUE)
 	{
-		//sprintf(Data_Send, "", );
+		/*sprintf(Data_Send, "", );
+			Data_Send에 대입
+		*/
 		Data_SendSize = strlen(Data_Send);
 		send(cSocket, Data_Send, Data_SendSize, 0);
 	}
@@ -202,16 +214,17 @@ void T_N_sRecv()
 
 }
 
+
 // 함수 정의
 void B_ConsloeInit();
-
 int P_Start();
 void G_Title(int x, int y);
 //void G_Menu();
 void G_Box(int x, int y, int w, int h);
-void N_ServerMake();
+int N_ServerMake_Main();
 void N_ServerConnection();
 void P_GameExit();
+void P_Game_Start();
 
 
 int main()
@@ -229,13 +242,13 @@ int main()
 	{
 	case 1:
 		// -- 1. 서버 만들기 --
-		N_ServerMake();
+		N_ServerMake_Main();
 		break;
 
 	case 2:
 		// -- 2. 서버 들어가기 --
 		N_ServerConnection();
-		Game_Start();
+		P_Game_Start();
 		break;
 
 	case 3:
@@ -280,16 +293,17 @@ void B_ConsloeInit()
 	ConsoleHeight = ScreenHeight / FntSizeY - 4;
 
 	sprintf(system_str, "mode con cols=%d lines=%d", ConsoleWidth, ConsoleHeight);
+	system(system_str);
 
 	system("title Out Zombie");
-	system(system_str);
+	
 
 }
 
 // 시작화면
 int P_Start()
 {
-	G_Title(15, 5);
+	//G_Title(15, 5);
 	while (TRUE)
 	{
 		// 서버 만들기 박스
@@ -479,8 +493,29 @@ void G_Box(int x, int y, int w, int h)
 
 
 // 서버 만들기
-void N_ServerMake()
+int N_ServerMake_Main()
 {
+	char system_str[100] = { 0 };
+	sprintf(system_str, "mode con cols=%d lines=%d", 100, 30);
+	system(system_str);
+
+	// 화면 지우기
+	G_Clean();
+
+	// 포트 입력 받기 49152 ~ 65535
+	int sPort = 30002;
+	printf("49152 ~ 65535\n");
+	printf("Server Port : ");
+	scanf_s("%d",&sPort);
+	if (sPort > 65535 || sPort < 49152)
+	{
+		if (sPort > 65535)
+			sPort = 65535;
+		else
+			sPort = 49152;
+		printf("포트 재설정 (%d)",sPort);
+	}
+
 	// 초기화
 	WSADATA wsa_data;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0)
@@ -489,8 +524,6 @@ void N_ServerMake()
 		return 1;
 	}
 
-	// 포트 입력 받기
-	int sPort = 30002;
 
 	// 서버 주소 초기화
 	SOCKADDR_IN serv_addr;
@@ -499,57 +532,125 @@ void N_ServerMake()
 	serv_addr.sin_port = htons(sPort);
 	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
+	printf("Server    IP : %s\n", inet_ntoa(serv_addr.sin_addr));
+	printf("Server  Port : %d\n", sPort);
 
-	SOCKET listen_sock;
-	listen_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (listen_sock == INVALID_SOCKET)
+	// 서버 소켓 만들기
+	SOCKET serv_sock;
+	serv_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (serv_sock == INVALID_SOCKET)
 	{
 		WSACleanup();
 		printf("Socket Error\n");
 		return 1;
 	}
 
-
-	if (bind(listen_sock, (SOCKADDR*)& serv_addr, sizeof(serv_addr)) == SOCKET_ERROR)
+	// bind 후 listen
+	if (bind(serv_sock, (SOCKADDR*)& serv_addr, sizeof(serv_addr)) == SOCKET_ERROR)
 	{
 		printf("Bind Error\n");
-		closesocket(listen_sock);
+		closesocket(serv_sock);
 		WSACleanup();
 		return 1;
 	}
-	if (listen(listen_sock, 5) == SOCKET_ERROR)
+	if (listen(serv_sock, 5) == SOCKET_ERROR)
 	{
 		printf("Listen Error\n");
-		closesocket(listen_sock);
+		closesocket(serv_sock);
 		WSACleanup();
 		return 1;
 	}
 
-	
-
-	while (TRUE)
+	// 각 플레이어 포트 정하기 랜덤 4개
+	int pPort[MAX_PLAYER] = { 0 };
+	srand((unsigned)time(NULL));
+	for (int i = 0; i < MAX_PLAYER; i++)
 	{
-		exit(1);
+		pPort[i] = (rand() % 1638 + 4915) * 10 + 1 + i;
 	}
+
+	// 클라이언트와 연결 할 소켓 만들기
+	SOCKADDR_IN clnt_addr;
+	SOCKET clnt_sock;
+	int size_clnt_addr = sizeof(clnt_addr);
+	char data_send[20] = { 0 };
+	//char recv_byte;
+	char data_recv[20] = { 0 };
+
+	char clnt_info[30] = { 0 };
+
+	// 각 플레이어에게 포트 전달 & 연결 대기중
+	printf("--PLAYER WAIT--\n");
+	for (int pIndex, i = 0; i < MAX_PLAYER; i++)
+	{
+		// clnt_addr 초기화 
+		memset(&clnt_addr, 0, sizeof(clnt_addr));
+		
+		printf("player wait... (%d / %d)\n", i, MAX_PLAYER);
+		
+		// 연결
+		clnt_sock = accept(serv_sock, (SOCKADDR*)& clnt_addr, &size_clnt_addr);
+		if (clnt_sock == INVALID_SOCKET)
+			printf("%d_player Failed accept!!\n", i);
+
+
+		// Clnt ip 출력
+		sprintf(clnt_info, "%d %s", i, inet_ntoa(clnt_addr.sin_addr));
+		printf("Clnt accept : %s\n", clnt_info);
+		
+		// 보낼 메시지 확인
+		sprintf(data_send, "%d %d", i, pPort[i]);
+		printf("send message : %s\n", data_send);
+		
+		// 포트 번호 전송
+		send(clnt_sock, data_send, strlen(data_send) + 1, 0);
+		// 확인 받기
+		recv(clnt_sock, data_recv, sizeof(data_recv), 0);
+
+		if (strcmp(data_recv, "%d %d", i, inet_ntoa(clnt_addr.sin_addr)) != 0)
+		{
+			closesocket(serv_sock);
+			WSACleanup();
+			return 1;
+		}
+
+		printf("\n");
+		closesocket(clnt_sock);
+		printf("closesocket : %s\n", clnt_info);
+	}
+	closesocket(serv_sock);
+
+	/*
+	
+	전송 및 받기
+
+	*/
+
+	WSACleanup();
 }
 
 // 서버 들어가기
 void N_ServerConnection()
 {
 
+	// 화면 지우기 
+	G_Clean();
+
 	WSADATA wsa_data;
 	SOCKET clnt_sock;
 	SOCKADDR_IN serv_addr;
+	SOCKADDR_IN clnt_addr;
 
 	char sAddr[15] = { 0 };
 	int sPort;
 
-	char data_send[100] = { 0 };
+	char data_send[20] = { 0 };
 
+	// 서버 ip & port 입력 받기
 	printf("서버 IP : ");
 	scanf_s("%s", sAddr, 15);
 	printf("포트 번호 : ");
-	scanf_s("%s", data_send, 100);
+	scanf_s("%s", data_send, 20);
 	sPort = atoi(data_send);
 
 	if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0)
@@ -566,12 +667,14 @@ void N_ServerConnection()
 		exit(1);
 	}
 
+	// 서버 주소 초기화
 	memset(&serv_addr, 0, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(sPort);
 	serv_addr.sin_addr.s_addr = inet_addr(sAddr);
 	//inet_pton(AF_INET, sAddr, &serv_addr.sin_addr);
 
+	// Server Connect 
 	if (connect(clnt_sock, (SOCKADDR*)& serv_addr, sizeof(serv_addr)) == SOCKET_ERROR)
 	{
 		printf("Connection Error\n");
@@ -581,12 +684,61 @@ void N_ServerConnection()
 	}
 	else
 	{
-		printf("연결 성공,,,\n시작,,,\n");
+		// 연결중
+		// G_Connecting_Server();
+		printf("Server Connect");
 	}
 
+	int nRcv;
+	char data_recv[20] = { 0 };
 
+	// 포트 번호 받기 (from Server
+	nRcv = recv(clnt_sock, data_recv, sizeof(data_recv), 0);
+	if (nRcv == SOCKET_ERROR || nRcv < 0)
+	{
+		printf("Receive Error\n");
+		closesocket(clnt_sock);
+		WSACleanup();
+	}
+
+	int pIndex;
+	int pPort;
+
+	pIndex = atoi(strtok(data_recv, " "));
+	pPort = atoi(strtok(NULL, " "));
+
+	// pIndex 와 pIP 보내기
+	memset(&clnt_addr, 0, sizeof(clnt_addr));
+	clnt_addr.sin_addr.s_addr = inet_addr(INADDR_ANY);
+
+	sprintf(data_send, "%d %s", pIndex, inet_ntoa(serv_addr.sin_addr));
+	send(clnt_sock, data_send, strlen(data_send), 0);
+	closesocket(clnt_sock);
+
+
+	// 받은 포트 번호로 연결
+	// 서버 초기화
+	memset(&serv_addr, 0, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(pPort);
+	serv_addr.sin_addr.s_addr = inet_addr(sAddr);
+	//inet_pton(AF_INET, sAddr, &serv_addr.sin_addr);
+
+
+
+	closesocket(clnt_sock);
+	WSACleanup();
 	while (TRUE)
 	{
+	}
+}
+
+// 게임 시작하기
+void  P_Game_Start()
+{
+	while (TRUE)
+	{
+		// 그리기~
 	}
 }
 
