@@ -17,9 +17,14 @@
 #pragma comment( lib, "ws2_32.lib")
 
 
-// 필수 메크로 정의
-#define MAX_PLAYER 4
+// ucrtbase.dll 오류
+// vcruntime140 오류
 
+// 필수 메크로 정의
+#define MAX_PLAYER 2
+
+#define VK_0 0x30
+#define VK_1 0x31
 #define VK_W 0x57
 #define VK_A 0x41
 #define VK_S 0x53
@@ -27,10 +32,16 @@
 
 
 // 필수 변수 정의
+typedef struct Serv_Param
+{
+	SOCKET _Socket;
+	int ID;
+
+}Serv_Param;
 
 typedef struct Map
 {
-	FILE *pMap;
+	FILE* pMap;
 	int Width;
 	int Height;
 }Map;
@@ -53,10 +64,14 @@ typedef struct PlayerPosition
 MouseInfo UserMouse = { 0 };
 
 PlayerPosition Player[MAX_PLAYER] = { 0 };
-int PlayerID;
+int PlayerID = 0;
+
+int pSendPing = 0;
+int pRecvPing = 0;
 
 int StartMenu;
 
+int pPort[MAX_PLAYER] = { 0 };
 
 // 필수 함수 정의
 int IsKeyDown(int key)
@@ -168,11 +183,12 @@ void T_N_cSend(void* _pArgs)
 
 	while (TRUE)
 	{
-		sprintf(Data_Send, "%d %d %d %d %d", PlayerID, Player[PlayerID].X, Player[PlayerID].Y,
-											UserMouse.MousePostion.X, UserMouse.MousePostion.Y);
+		sprintf_s(Data_Send, 100,"%d %d %d", PlayerID, (int)Player[PlayerID].X, (int)Player[PlayerID].Y);
+			//UserMouse.MousePostion.X, UserMouse.MousePostion.Y);
 
 		Data_SendSize = strlen(Data_Send);
 		send(cSocket, Data_Send, Data_SendSize, 0);
+		pSendPing++;
 	}
 
 	//sprintf(system_str, "mode con cols=%d lines=%d", nWidth / FsizeX, nHeight / FsizeY);
@@ -202,33 +218,41 @@ void T_N_cRecv(void* _pArgs)
 	SOCKET cSocket = *(SOCKET*)_pArgs;
 
 	char Data_Recv[1024] = { 0 };
-	int Data_RecvSize;
+	char* temp = 0;
 
+	int Data_RecvSize;
+	
 	int check;
 
-	while(TRUE)
+	while (TRUE)
 	{
 		Data_RecvSize = recv(cSocket, Data_Recv, sizeof(Data_Recv), 0);
 		if (Data_RecvSize <= 0)
-			return 0;
+			return;
 
-		check = atoi(strtok(Data_Recv, " "));
+		check = atoi(strtok_s(Data_Recv, " ", &temp));
+		/*
 		if (check != PlayerID)
-			return 0;
-
+			return;
+			*/
 		for (int i = 0; i < MAX_PLAYER; i++)
 		{
+			/*
 			if (i == PlayerID)
 				continue;
-			Player[i].X = atoi(strtok(NULL, " "));
-			Player[i].Y = atoi(strtok(NULL, " "));
+			*/
+			Player[i].X = atoi(strtok_s(NULL, " ", &temp));
+			Player[i].Y = atoi(strtok_s(NULL, " ", &temp));
 		}
-		
+
+		pRecvPing++;
 	}
 
 	printf("서버에서 연결 끊김\n");
-	return 0;
+	exit(1);
 }
+
+
 
 // Serv
 void T_N_sSend(void* _pArgs)
@@ -252,23 +276,79 @@ void T_N_sSend(void* _pArgs)
 		mouseInfo
 	} * 4
 	*/
+	
+	Serv_Param temp = *(Serv_Param*)_pArgs;
 
+	
+	SOCKET sSocket = temp._Socket;
+
+	char Data_Send[1024] = { 0 };
+	int Data_SendSize;
+
+
+	while (TRUE)
+	{
+		// 배열 지우기
+		Data_Send[0] = '\0';
+
+		// 사람 수 만큼 플레이어 좌표 배열에 대입
+		for (int i = 0; i < MAX_PLAYER; i++)
+		{
+			sprintf_s(Data_Send,1024, "%s%d %d ", Data_Send, (int)Player[i].X, (int)Player[i].Y);
+		}
+		Data_SendSize = strlen(Data_Send);
+		send(sSocket, Data_Send, Data_SendSize, 0);
+		Sleep(10);
+		printf("서버 보냄\n");
+	}
+	
 }
 void T_N_sRecv(void* _pArgs)
 {
 	/*
 	Send 내용
 	{
+		ID
 		player position
 		mouseInfo
-	} * 4
+	}
 	*/
 
+	Serv_Param temp = *(Serv_Param*)_pArgs;
+
+	SOCKET sSocket = temp._Socket;
+	int pID = temp.ID;
+
+	char Data_Recv[100] = { 0 };
+	char* Strtok_temp = 0;
+	int Data_RecvSize;
+	int check;
+
+	while (TRUE)
+	{
+		Data_RecvSize = recv(sSocket, Data_Recv, sizeof(Data_Recv), 0);
+		if (Data_RecvSize <= 0)
+			return;
+
+		check = atoi(strtok_s(Data_Recv, " ", &Strtok_temp));
+		if (check != PlayerID)
+			return;
+
+
+		Player[pID].X = atoi(strtok_s(NULL, " ", &Strtok_temp));
+		Player[pID].Y = atoi(strtok_s(NULL, " ", &Strtok_temp));
+
+		Sleep(10);
+		printf("서버 받음\n");
+	}
+	printf("클라이언트에서 연결 끊김\n");
+	return;
 }
 
 
 // 함수 정의
 void B_ConsloeInit();
+void B_Init();
 int P_Start();
 void G_Title(int x, int y);
 //void G_Menu();
@@ -277,7 +357,9 @@ int N_ServerMake_Main();
 void N_ServerConnection();
 void P_GameExit();
 void P_Game_Start();
-
+void G_player();
+void G_player_Info(int x, int y);
+void G_Ping();
 
 int main()
 {
@@ -286,6 +368,11 @@ int main()
 
 	// 마우스 입력 받기
 	_beginthreadex(NULL, 0, (_beginthreadex_proc_type)T_MouseInput, NULL, 0, NULL);
+	
+
+
+	// 변수 초기화
+	B_Init();
 
 	// 시작 화면
 	StartMenu = P_Start();
@@ -294,6 +381,7 @@ int main()
 	{
 	case 1:
 		// -- 1. 서버 만들기 --
+		//로딩중
 		N_ServerMake_Main();
 		break;
 
@@ -312,6 +400,7 @@ int main()
 		break;
 	}
 
+	P_GameExit();
 	return 0;
 }
 
@@ -344,7 +433,7 @@ void B_ConsloeInit()
 	ConsoleWidth = ScreenWidth / FntSizeX;
 	ConsoleHeight = ScreenHeight / FntSizeY - 4;
 
-	sprintf(system_str, "mode con cols=%d lines=%d", ConsoleWidth, ConsoleHeight);
+	sprintf_s(system_str, 35, "mode con cols=%d lines=%d", ConsoleWidth, ConsoleHeight);
 	system(system_str);
 
 	system("title Out Zombie");
@@ -352,10 +441,20 @@ void B_ConsloeInit()
 
 }
 
+// 변수 초기화
+void B_Init()
+{
+	for (int i = 0; i < MAX_PLAYER; i++)
+	{
+		Player[i].X = rand() % 5+1;
+		Player[i].Y = rand() % 5+1;
+	}
+}
+
 // 시작화면
 int P_Start()
 {
-	//G_Title(15, 5);
+	G_Title(15, 5);
 	while (TRUE)
 	{
 		// 서버 만들기 박스
@@ -548,7 +647,7 @@ void G_Box(int x, int y, int w, int h)
 int N_ServerMake_Main()
 {
 	char system_str[100] = { 0 };
-	sprintf(system_str, "mode con cols=%d lines=%d", 100, 30);
+	sprintf_s(system_str,100, "mode con cols=%d lines=%d", 100, 30);
 	system(system_str);
 
 	// 화면 지우기
@@ -559,13 +658,14 @@ int N_ServerMake_Main()
 	printf("49152 ~ 65535\n");
 	printf("Server Port : ");
 	scanf_s("%d", &sPort);
+	fflush(stdin);
 	if (sPort > 65535 || sPort < 49152)
 	{
 		if (sPort > 65535)
 			sPort = 65535;
 		else
 			sPort = 49152;
-		printf("포트 재설정 (%d)", sPort);
+		printf("포트 재설정 (%d)\n", sPort);
 	}
 
 	// 초기화
@@ -584,8 +684,6 @@ int N_ServerMake_Main()
 	serv_addr.sin_port = htons(sPort);
 	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-	printf("Server    IP : %s\n", inet_ntoa(serv_addr.sin_addr));
-	printf("Server  Port : %d\n", sPort);
 
 	// 서버 소켓 만들기
 	SOCKET serv_sock;
@@ -613,8 +711,10 @@ int N_ServerMake_Main()
 		return 1;
 	}
 
+	printf("Server    IP : %s\n", inet_ntoa(serv_addr.sin_addr));
+	printf("Server  Port : %d\n", sPort);
+
 	// 각 플레이어 포트 정하기 랜덤 4개
-	int pPort[MAX_PLAYER] = { 0 };
 	srand((unsigned)time(NULL));
 	for (int i = 0; i < MAX_PLAYER; i++)
 	{
@@ -633,6 +733,7 @@ int N_ServerMake_Main()
 	char clnt_info[30] = { 0 };
 
 	// 각 플레이어에게 포트 전달 & 연결 대기중
+	char check[20] = { 0 };
 	printf("--PLAYER WAIT--\n");
 	for (int i = 0; i < MAX_PLAYER; i++)
 	{
@@ -648,11 +749,11 @@ int N_ServerMake_Main()
 
 
 		// Clnt ip 출력
-		sprintf(clnt_info, "%d %s", i, inet_ntoa(clnt_addr.sin_addr));
+		sprintf_s(clnt_info,30, "%d %s", i, inet_ntoa(clnt_addr.sin_addr));
 		printf("Clnt accept : %s\n", clnt_info);
 
 		// 보낼 메시지 확인
-		sprintf(data_send, "%d %d", i, pPort[i]);
+		sprintf_s(data_send,20, "%d %d", i, pPort[i]);
 		printf("send message : %s\n", data_send);
 
 		// 포트 번호 전송
@@ -660,20 +761,23 @@ int N_ServerMake_Main()
 		// 확인 받기
 		recv(clnt_sock, data_recv, sizeof(data_recv), 0);
 
-		if (strcmp(data_recv, "%d %d", i, inet_ntoa(clnt_addr.sin_addr)) != 0)
+
+		check[0] = '\0';
+		sprintf_s(check,20, "%d %s", i, inet_ntoa(clnt_addr.sin_addr));
+		if (strcmp(data_recv, check) != 0)
 		{
 			closesocket(serv_sock);
 			WSACleanup();
 			return 1;
 		}
 
-		printf("\n");
 		closesocket(clnt_sock);
-		printf("closesocket : %s\n", clnt_info);
+		printf("closesocket : %s\n\n", clnt_info);
 	}
 	closesocket(serv_sock);
 
 	// 포트로 연결 후 쓰레드 호출
+	Serv_Param temp;
 	printf("--PLAYER Cenneted--\n");
 	for (int i = 0; i < MAX_PLAYER; i++)
 	{
@@ -681,7 +785,7 @@ int N_ServerMake_Main()
 
 		printf("open Port : %d", pPort[i]);
 		// 서버 소켓 포트 설정
-		serv_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+		serv_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP); //-----------------------------------------------------------------------------------------------------------------------
 		if (serv_sock == INVALID_SOCKET)
 		{
 			WSACleanup();
@@ -717,14 +821,25 @@ int N_ServerMake_Main()
 			printf("%d_player Failed accept!!\n", i);
 
 		
-		T_N_sSend(clnt_sock);
-		T_N_sRecv(clnt_sock);
-		
+		temp._Socket = clnt_sock;
+		temp.ID = i;
+
+		_beginthreadex(NULL, 0, (_beginthreadex_proc_type)T_N_sSend, (void*)& temp, 0, NULL);
+		_beginthreadex(NULL, 0, (_beginthreadex_proc_type)T_N_sRecv, (void*)& temp, 0, NULL);
+		/*
+		T_N_sSend(clnt_sock,i);
+		T_N_sRecv(clnt_sock,i);
+		*/
 
 		closesocket(serv_sock);
 	}
 
+	while (TRUE)
+		if (IsKeyDown(VK_END))
+			break;
+
 	WSACleanup();
+	return 0;
 }
 
 // 서버 들어가기
@@ -732,28 +847,32 @@ void N_ServerConnection()
 {
 
 	// 화면 지우기 
-	G_Clean();
+	//G_Clean();
+	system("cls");
 
 	WSADATA wsa_data;
 	SOCKET clnt_sock;
 	SOCKADDR_IN serv_addr;
-	SOCKADDR_IN clnt_addr;
+	//SOCKADDR_IN clnt_addr;
 
 	char sAddr[15] = { 0 };
 	int sPort;
 
 	char data_send[20] = { 0 };
-
+	CSgotoxy(0, 0);
 	// 서버 ip & port 입력 받기
 	printf("서버 IP : ");
 	scanf_s("%s", sAddr, 15);
+	fflush(stdin);
 	printf("포트 번호 : ");
 	scanf_s("%s", data_send, 20);
 	sPort = atoi(data_send);
+	fflush(stdin);
 
 	if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0)
 	{
 		printf("Load WinSock 2.2 DLL Error");
+		fflush(stdin);
 		exit(1);
 	}
 
@@ -762,6 +881,7 @@ void N_ServerConnection()
 	{
 		printf("Socket Error");
 		WSACleanup();
+		fflush(stdin);
 		exit(1);
 	}
 
@@ -778,6 +898,7 @@ void N_ServerConnection()
 		printf("Connection Error\n");
 		closesocket(clnt_sock);
 		WSACleanup();
+		fflush(stdin);
 		exit(1);
 	}
 	else
@@ -800,35 +921,66 @@ void N_ServerConnection()
 	}
 
 	int pIndex;
-	int pPort;
+	int CpPort;
 
-	pIndex = atoi(strtok(data_recv, " "));
-	pPort = atoi(strtok(NULL, " "));
+	char* Strtok_temp = 0;
 
+	pIndex = atoi(strtok_s(data_recv, " ", &Strtok_temp));
+	CpPort = atoi(strtok_s(NULL, " ", &Strtok_temp));
+	printf("%d 플레이어 포트:%d", pIndex + 1, CpPort);
 	// pIndex 와 pIP 보내기
+	/*
 	memset(&clnt_addr, 0, sizeof(clnt_addr));
 	clnt_addr.sin_addr.s_addr = inet_addr(INADDR_ANY);
-
-	sprintf(data_send, "%d %s", pIndex, inet_ntoa(serv_addr.sin_addr));
+	*/
+	sprintf_s(data_send, 20, "%d %s", pIndex, inet_ntoa(serv_addr.sin_addr));
 	send(clnt_sock, data_send, strlen(data_send), 0);
 	closesocket(clnt_sock);
+
+
+	printf("%d Press", pIndex);
+	while (TRUE)
+	{
+		if (pIndex == 0)
+		{
+			if (IsKeyDown(VK_0))
+				break;
+
+		}
+		if (pIndex == 1)
+		{
+
+			if (IsKeyDown(VK_1))
+				break;
+		}
+	}
 
 
 	// 받은 포트 번호로 연결
 	// 서버 초기화
 	memset(&serv_addr, 0, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(pPort);
+	serv_addr.sin_port = htons(CpPort);
 	serv_addr.sin_addr.s_addr = inet_addr(sAddr);
 	//inet_pton(AF_INET, sAddr, &serv_addr.sin_addr);
+	
+	clnt_sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (clnt_sock == INVALID_SOCKET)
+	{
+		printf("Socket Error");
+		WSACleanup();
+		fflush(stdin);
+		exit(1);
+	}
 
 	// 새로운 포트로 연결
 	if (connect(clnt_sock, (SOCKADDR*)& serv_addr, sizeof(serv_addr)) == SOCKET_ERROR)
 	{
-		printf("Connection Error\n");
+		printf("Connection Error\nConnection Error\nConnection Error\nConnection Error\nConnection Error\nConnection Error\nConnection Error\nConnection Error\nConnection Error\n");
 		closesocket(clnt_sock);
 		WSACleanup();
-		exit(1);
+		fflush(stdin);
+		exit(0);
 	}
 	else
 	{
@@ -840,8 +992,15 @@ void N_ServerConnection()
 	PlayerID = pIndex;
 
 	// 쓰레드로 출력
+	_beginthreadex(NULL, 0, (_beginthreadex_proc_type)T_N_cSend, (void*)& clnt_sock, 0, NULL);
+	_beginthreadex(NULL, 0, (_beginthreadex_proc_type)T_N_cRecv, (void*)& clnt_sock, 0, NULL);
+	/*
 	T_N_cSend(clnt_sock);
 	T_N_cRecv(clnt_sock);
+	*/
+
+
+
 
 	P_Game_Start();
 
@@ -852,31 +1011,44 @@ void N_ServerConnection()
 // 게임 시작하기
 void P_Game_Start()
 {
-	while (TRUE)
-	{
-		// 맵 불러오기 (자기 위치기반)
-		
-	}
+	G_player();
 }
 
 void G_player()
 {
-	for (int i = 0; i < MAX_PLAYER; i++)
+	// 키보드 입력 받기
+	_beginthreadex(NULL, 0, (_beginthreadex_proc_type)T_KeyInput, NULL, 0, NULL);
+	while (TRUE)
 	{
-
-
+		G_Clean();
+		G_Ping();
+		for (int i = 0; i < MAX_PLAYER; i++)
+		{
+			G_player_Info((int)Player[i].X, (int)Player[i].Y);
+		}
+		Sleep(30);
+		
+		if (IsKeyDown(VK_END))
+			break;
 	}
-
 }
 
-/*
-void Render()
+void G_player_Info(int x, int y)
 {
-
+	CSgotoxy(x, y);
+	printf("◎");
 }
-*/
+
+void G_Ping()
+{
+	CSgotoxy(0, 0);
+	printf("%dP_ping : %d(S) , %d(R)", PlayerID, pSendPing, pRecvPing);
+}
+
 // 게임 나가기
 void P_GameExit()
 {
+	CSgotoxy(0, 0);
+	fflush(stdin);
 	exit(1);
 }
