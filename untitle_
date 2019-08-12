@@ -1,0 +1,279 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>title</title>
+    <link rel="stylesheet" href="../css/0805.css">
+
+  </head>
+  <body onresize="resize()" onkeydown="keyPress()" onkeyup="keyUp()">
+
+    <div id="userScreen">
+      <!--
+      <img src="../img/player.png" alt="">
+      -->
+      <div>
+      <img src="../img/mMiro.png" alt="" id="map">
+    </div>
+
+    <script type="text/javascript" src="../script/0805.js"></script>
+  </body>
+</html>
+-----------------------
+div{
+  border: 1px solid green;
+  background-color: gray;
+}
+
+body{
+  /*cursor:none;*/
+  cursor: url("./scope.png"), pointer;
+  margin: 0px;
+  overflow: hidden;
+}
+
+#userScreen{
+  width: 1000px;
+  height: 1000px;
+  overflow: hidden;
+  margin: 0px;
+}
+
+#map{
+  transform: rotate(0deg);
+  transform-origin: 0px 0px;"
+  margin-left: 100px;
+  margin-top: 100px;
+}
+------------------
+
+// 내장 함수
+//사이즈 변경하면 실행하는 함수
+function resize() {
+  let hUserScreen = document.getElementById("userScreen");
+  console.log('Resizing...')
+
+  userScreen.width = window.innerWidth;
+  userScreen.height = window.innerHeight;
+
+  hUserScreen.style.width = userScreen.width + "px";
+  hUserScreen.style.height = userScreen.height + "px";
+
+};
+
+//키 입력 시 실행하는 함수
+function keyPress(){
+  let downKeyCode = event.keyCode;
+  //console.log(downKeyCode);
+
+  if (downKeyCode in keyCode){
+    keyCode[downKeyCode] = 1;
+  }
+  else{
+    event.returnValue = false; // 브라우저 기능 키 무효화
+  }
+  //console.log(keyCode);
+
+}
+
+function keyUp(){
+  let upKeyCode = event.keyCode;
+  //console.log(upKeyCode);
+
+  if (upKeyCode in keyCode){
+    keyCode[upKeyCode] = 0;
+  }
+  //console.log(keyCode);
+}
+
+function playerPositionDelta(theta){
+  
+  let ridian = Math.radians(theta);
+
+  let vPlayerPositionDelta = {
+    deltaX : Math.cos(ridian),
+    deltaY : Math.sin(ridian)
+  };
+  
+  return vPlayerPositionDelta;
+}
+
+function playerMove(){
+    
+  let directionDelta = 0;
+    
+  let normalizeX = 0;
+  let normalizeY = 0;
+    
+  if (isKeyDown(65)) // A
+  {
+    normalizeX += -1;
+  }
+  if (isKeyDown(87)) // W
+  {
+    normalizeY += -1;
+  }
+  if (isKeyDown(83)) // S
+  {
+    normalizeY += 1;
+  }
+  if (isKeyDown(68)) // D
+  {
+    normalizeX += 1;
+  }
+    
+    
+  // 대각선 이동
+  if((normalizeX != 0) && (normalizeY != 0))
+  {
+    if(normalizeX == 1){
+      if(normalizeY == 1) directionDelta = 45; // ↗  
+      else directionDelta = 315; // ↖
+    }
+    else{
+      if(normalizeY == 1) directionDelta = 135; // ↘
+      else directionDelta = 225; // ↙
+    }
+  }
+  // 직선 이동
+  else if((normalizeX != 0) || (normalizeY != 0)) 
+  {
+    if(normalizeY == 0){
+      if(normalizeX == 1) directionDelta = 0; // ↑
+      else directionDelta = 180; // ↓
+    }
+    else{
+      if(normalizeY == 1) directionDelta = 90; // →
+      else directionDelta = 270; // ←
+    }
+  }
+  // 이동 안함
+  else return 0;
+      
+  let vPlayerPositionDelta = playerPositionDelta(player.direction - directionDelta);
+  
+  player.position.x += vPlayerPositionDelta.deltaX * player.speed;
+  player.position.y -= vPlayerPositionDelta.deltaY * player.speed;
+  console.log("del x : " + vPlayerPositionDelta.deltaX);
+  console.log("del y : " + vPlayerPositionDelta.deltaY);
+}
+
+
+// 초기화
+function init(){
+
+  Math.radians = function(degrees) {
+      return degrees * Math.PI / 180;
+  };
+
+  let hUserScreen = document.getElementById("userScreen");
+
+  // 클릭 시 마우스 가두기 -> 무조건 끝날 때 까지
+  hUserScreen.addEventListener('click', function(event){
+    hUserScreen.requestPointerLock();
+  });
+
+  // thread 마우스 델타 값 얻기
+  hUserScreen.addEventListener('mousemove', function(event){
+    //console.log("x : " + event.movementX + ", y : " + event.movementY);
+    mapRotate(event.movementX);
+  });
+
+
+  userScreen = {
+    width : window.innerHeight,
+    height : window.innerWidth
+  }
+  resize();
+
+  keyCode = {
+    87:0,
+    65:0,
+    83:0,
+    68:0,
+    122:0,
+    123:0
+  };
+
+  updateDelay = 10;
+
+  player = {
+    position : {
+      x : 0,
+      y : 0,
+    },
+    direction : 0,
+    speed : 1,
+    mouseSensitivity : 10
+  };
+
+}
+
+
+function mapRotate(deltaX){
+  player.direction -= deltaX * player.mouseSensitivity / 100;
+  console.log(player.direction);
+}
+
+// 키 입력 확인 함수
+function isKeyDown(key){
+  return keyCode[key];
+}
+
+function render(){
+  let map = document.getElementById("map");
+
+  //let userScreenCenterWidth = userScreen.width / 2;
+  //let userScreenCenterHeight = userScreen.height / 2
+
+  let mapMarginL = 0;
+  let mapMarginT = 0;
+
+  mapMarginL -= player.position.x;
+  mapMarginT -= player.position.y;
+
+  mapMarginL += userScreen.width / 2;
+  mapMarginT += userScreen.height / 2;
+
+  map.style.marginLeft = mapMarginL + "px";
+  map.style.marginTop = mapMarginT + "px";
+
+
+  map.style.transform = "rotate(" + player.direction + "deg)";
+  map.style.transformOrigin = player.position.x + "px " +
+                              player.position.y + "px";
+}
+
+function update(){
+  playerMove();
+  /*
+  if (isKeyDown(65)) // A
+  {
+    player.position.x -= player.speed;
+  }
+  if (isKeyDown(87)) // W
+  {
+    player.position.y -= player.speed;
+  }
+  if (isKeyDown(83)) // S
+  {
+    player.position.y += player.speed;
+  }
+  if (isKeyDown(68)) // D
+  {
+    player.position.x += player.speed;
+  }
+  */
+  
+  //console.log(player.position);
+  render();
+}
+
+
+function main(){
+  hInputKey = setInterval(update, updateDelay);
+}
+
+//---------------------------------
+init();
+main();
