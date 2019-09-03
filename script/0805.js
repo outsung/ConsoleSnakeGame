@@ -1,0 +1,341 @@
+
+// 내장 함수
+//사이즈 변경하면 실행하는 함수
+function resize() {
+  let hUserScreen = document.getElementById("userScreen");
+  console.log('Resizing...')
+
+  userScreen.width = window.innerWidth;
+  userScreen.height = window.innerHeight;
+
+  hUserScreen.style.width = userScreen.width + "px";
+  hUserScreen.style.height = userScreen.height + "px";
+    
+  
+        
+  let hPlayer = document.getElementById("player");
+  hPlayer.style.marginLeft = userScreen.width / 2 - 5 + "px";
+  hPlayer.style.marginTop = userScreen.height / 2 - 5 + "px";
+
+};
+
+//키 입력 시 실행하는 함수
+function keyPress(){
+  let downKeyCode = event.keyCode;
+  //console.log(downKeyCode);
+
+  if (downKeyCode in keyCode){
+    keyCode[downKeyCode] = 1;
+  }
+  else{
+    event.returnValue = false; // 브라우저 기능 키 무효화
+  }
+  //console.log(keyCode);
+
+}
+
+function keyUp(){
+  let upKeyCode = event.keyCode;
+  //console.log(upKeyCode);
+
+  if (upKeyCode in keyCode){
+    keyCode[upKeyCode] = 0;
+  }
+  //console.log(keyCode);
+}
+
+function playerPositionDelta(theta){
+  
+  let ridian = Math.radians(theta);
+
+  let vPlayerPositionDelta = {
+    deltaX : parseFloat(Math.cos(ridian).toFixed(1)),
+    deltaY : parseFloat(Math.sin(ridian).toFixed(1))
+  };
+  
+  return vPlayerPositionDelta;
+}
+
+function playerMove(){
+    
+  let directionDelta = 0;
+    
+  let normalizeX = 0;
+  let normalizeY = 0;
+    
+  if (isKeyDown(65)) // A
+  {
+    normalizeX += -1;
+  }
+  if (isKeyDown(87)) // W
+  {
+    normalizeY += -1;
+  }
+  if (isKeyDown(83)) // S
+  {
+    normalizeY += 1;
+  }
+  if (isKeyDown(68)) // D
+  {
+    normalizeX += 1;
+  }
+    
+    
+  // 대각선 이동
+  if((normalizeX != 0) && (normalizeY != 0))
+  {
+    if(normalizeX == 1){
+      if(normalizeY == 1) directionDelta = 45; // ↗  
+      else directionDelta = 315; // ↖
+    }
+    else{
+      if(normalizeY == 1) directionDelta = 135; // ↘
+      else directionDelta = 225; // ↙
+    }
+  }
+  // 직선 이동
+  else if((normalizeX != 0) || (normalizeY != 0)) 
+  {
+    if(normalizeY == 0){
+      if(normalizeX == 1) directionDelta = 0; // ↑
+      else directionDelta = 180; // ↓
+    }
+    else{
+      if(normalizeY == 1) directionDelta = 90; // →
+      else directionDelta = 270; // ←
+    }
+  }
+  // 이동 안함
+  else return 0;
+      
+  let vPlayerPositionDelta = playerPositionDelta(player.direction - directionDelta);
+  
+  
+  let vPlayerPositionDeltaPixel = getPixel(player.position.x + vPlayerPositionDelta.deltaX * player.speed,
+                                            player.position.y - vPlayerPositionDelta.deltaY * player.speed);
+
+  let vPlayerPositionDeltaSlope = vPlayerPositionDelta.deltaX * player.speed /
+                                vPlayerPositionDelta.deltaY * player.speed;
+  console.log(vPlayerPositionDeltaPixel);
+  if(vPlayerPositionDeltaPixel[0] == 255 &&
+    vPlayerPositionDeltaPixel[1] == 255 &&
+    vPlayerPositionDeltaPixel[2] == 255 &&
+    vPlayerPositionDeltaPixel[3] == 255){
+      
+    console.log("NOTWALL!!");
+    player.position.x += vPlayerPositionDelta.deltaX * player.speed;
+    player.position.y -= vPlayerPositionDelta.deltaY * player.speed;
+    
+  }
+  else{/*
+    let wall = {
+      x : player.position.x + vPlayerPositionDelta.deltaX * player.speed,
+      y : player.position.y - vPlayerPositionDelta.deltaY * player.speed
+    }
+    while(true)
+    {
+        if(vPlayerPositionDeltaSlope)
+    }
+    //console.log("wall!");
+    //console.log("wall x : " + (player.position.x + vPlayerPositionDelta.deltaX * player.speed));
+    //console.log("wall y : " + (player.position.y - vPlayerPositionDelta.deltaY * player.speed));
+    */
+  }
+}
+
+//게임 시작
+function fGamePlay(){
+  console.log("~");
+}
+
+//게임 퍼즈
+function gamePause(){
+  console.log("~");
+  keyCode[upKeyCode] = 0;
+}
+
+// 초기화
+function init(){
+    
+    
+  gamePlay = false;
+    
+  keyCode = {
+    87 : 0,
+    65 : 0,
+    83 : 0,
+    68 : 0,
+    122 : 0,
+    123 : 0
+  };
+
+  updateDelay = 10;
+
+  player = {
+    position : {
+      x : 287,
+      y : 5,
+    },
+    direction : 0,
+    speed : 1,
+    mouseSensitivity : 10
+  };
+    
+    
+    
+  Math.radians = function(degrees) {
+      return degrees * Math.PI / 180;
+  };
+
+  let hUserScreen = document.getElementById("userScreen");
+
+  // 클릭 시 마우스 가두기 -> 무조건 끝날 때 까지
+  hUserScreen.addEventListener('click', function(event){
+    hUserScreen.requestPointerLock();
+  });
+    
+    
+  //게임 플레이 or 게임 퍼즈
+  document.addEventListener('pointerlockchange', function(event){
+  let hPause = document.getElementById("pause");
+  if(document.pointerLockElement === hUserScreen){
+    
+    hPause.style.display = "none";
+    gamePlay = true;
+    console.log("true");
+  }
+  else{
+    gamePlay = false;
+            
+    hPause.style.marginLeft = userScreen.width / 2 - 100 + "px";
+    hPause.style.marginTop = userScreen.height / 2 - 50 + "px";
+      
+    hPause.style.display = "block";
+    
+  }
+  console.log("game mod change bool = " + gamePlay);
+  });
+    
+
+  // thread 마우스 델타 값 얻기
+  hUserScreen.addEventListener('mousemove', function(event){
+    //console.log("x : " + event.movementX + ", y : " + event.movementY);
+    mapRotate(event.movementX);
+  });
+
+    
+  let hPlayer = document.getElementById("player");
+
+  userScreen = {
+    width : window.innerHeight,
+    height : window.innerWidth
+  }
+  resize();
+    
+  
+
+}
+
+function getPixel(x,y){
+  var img = new Image;
+  img.crossOrigin = "Anonymous";
+  var img = document.getElementById('map');
+  var canvas = document.createElement('canvas');
+  
+  canvas.width = img.width;
+  canvas.height = img.height;
+  canvas.getContext('2d').drawImage(img, 0, 0, img.width, img.height);
+  console.log("X = " + img.width + " Y = " + img.height);
+  return canvas.getContext('2d').getImageData(x, y, 1, 1).data;
+}
+
+/*
+function fMapLoad(id){
+  var img = document.getElementById('map');
+  var canvas = document.createElement('canvas');
+  canvas.width = img.width;
+  canvas.height = img.height;
+  canvas.getContext('2d').drawImage(img, 0, 0, img.width, img.height);
+}
+*/
+
+function mapRotate(deltaX){
+  if(gamePlay == 1){
+  player.direction -= deltaX * player.mouseSensitivity / 100;
+  console.log(player.direction);
+  }
+
+}
+
+// 키 입력 확인 함수
+function isKeyDown(key){
+  return keyCode[key];
+}
+
+function render(){
+  let hPosition = document.getElementById("position");
+  hPosition.innerHTML = "x = " + player.position.x.toFixed(1) + ", y = " + player.position.y.toFixed(1);
+    
+  let hMap = document.getElementById("map");
+
+  //let userScreenCenterWidth = userScreen.width / 2;
+  //let userScreenCenterHeight = userScreen.height / 2
+
+  let mapMarginL = 0;
+  let mapMarginT = 0;
+
+  mapMarginL -= player.position.x;
+  mapMarginT -= player.position.y;
+
+
+  mapMarginL += userScreen.width / 2;
+  mapMarginT += userScreen.height / 2;
+
+    
+  hMap.style.marginLeft = mapMarginL + "px";
+  hMap.style.marginTop = mapMarginT + "px";
+
+
+  hMap.style.transform = "rotate(" + player.direction + "deg)" + "scale(0.8)";
+  hMap.style.transformOrigin = player.position.x + "px " +
+                              player.position.y + "px";
+}
+
+function update(){
+  if(gamePlay === true) playerMove();
+  /*
+  if (isKeyDown(65)) // A
+  {
+    player.position.x -= player.speed;
+  }
+  if (isKeyDown(87)) // W
+  {
+    player.position.y -= player.speed;
+  }
+  if (isKeyDown(83)) // S
+  {
+    player.position.y += player.speed;
+  }
+  if (isKeyDown(68)) // D
+  {
+    player.position.x += player.speed;
+  }
+  */
+  
+  //console.log(player.position);
+  render();
+}
+
+
+function main(){
+  hInputKey = setInterval(update, updateDelay);
+}
+
+//---------------------------------
+init();
+main();
+
+//--------------08.20----------------//
+function attack(){
+    
+}
