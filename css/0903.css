@@ -1,6 +1,5 @@
 div{
   border: 1px solid green;
-  background-color: gray;
 }
 
 body{
@@ -14,11 +13,17 @@ body{
   /*position: absolute;*/
   width: 1000px;
   height: 1000px;
-  overflow: hidden;
+  /*overflow: hidden;*/
   margin: 0px;
 }
 
 #map{
+  border: 1px solid black;
+  z-index: 3;
+  position: absolute;
+  /*width: 100px;
+  height: 100px;
+  */
   transform: rotate(0deg);
   transform-origin: 0px 0px;
   margin-left: 100px;
@@ -37,7 +42,7 @@ body{
 }
 
 #position{
-  z-index: 2;  
+  z-index: 2;
   opacity: 0.5;
   position: absolute;
 }
