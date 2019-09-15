@@ -1,0 +1,48 @@
+div{
+  border: 1px solid green;
+}
+
+body{
+  /*cursor:none;*/
+  /*cursor: url("./scope.png"), pointer;*/
+  margin: 0px;
+  overflow: hidden;
+}
+
+#userScreen{
+  /*position: absolute;*/
+  width: 1000px;
+  height: 1000px;
+  /*overflow: hidden;*/
+  margin: 0px;
+}
+
+#map{
+  border: 1px solid black;
+  z-index: 3;
+  position: absolute;
+  /*width: 100px;
+  height: 100px;
+  */
+  transform: rotate(0deg);
+  transform-origin: 0px 0px;
+  margin-left: 100px;
+  margin-top: 100px;
+}
+
+#player{
+  z-index: 1;
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 100px;
+  margin-left: 0px;
+  margin-top: 0px;
+  background-color: red;
+}
+
+#position{
+  z-index: 2;
+  opacity: 0.5;
+  position: absolute;
+}
