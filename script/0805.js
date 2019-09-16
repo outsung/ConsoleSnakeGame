@@ -10,9 +10,9 @@ function resize() {
 
   hUserScreen.style.width = userScreen.width + "px";
   hUserScreen.style.height = userScreen.height + "px";
-    
-  
-        
+
+
+
   let hPlayer = document.getElementById("player");
   hPlayer.style.marginLeft = userScreen.width / 2 - 5 + "px";
   hPlayer.style.marginTop = userScreen.height / 2 - 5 + "px";
@@ -45,24 +45,24 @@ function keyUp(){
 }
 
 function playerPositionDelta(theta){
-  
+
   let ridian = Math.radians(theta);
 
   let vPlayerPositionDelta = {
     deltaX : parseFloat(Math.cos(ridian).toFixed(1)),
     deltaY : parseFloat(Math.sin(ridian).toFixed(1))
   };
-  
+
   return vPlayerPositionDelta;
 }
 
 function playerMove(){
-    
+
   let directionDelta = 0;
-    
+
   let normalizeX = 0;
   let normalizeY = 0;
-    
+
   if (isKeyDown(65)) // A
   {
     normalizeX += -1;
@@ -79,13 +79,13 @@ function playerMove(){
   {
     normalizeX += 1;
   }
-    
-    
+
+
   // 대각선 이동
   if((normalizeX != 0) && (normalizeY != 0))
   {
     if(normalizeX == 1){
-      if(normalizeY == 1) directionDelta = 45; // ↗  
+      if(normalizeY == 1) directionDelta = 45; // ↗
       else directionDelta = 315; // ↖
     }
     else{
@@ -94,7 +94,7 @@ function playerMove(){
     }
   }
   // 직선 이동
-  else if((normalizeX != 0) || (normalizeY != 0)) 
+  else if((normalizeX != 0) || (normalizeY != 0))
   {
     if(normalizeY == 0){
       if(normalizeX == 1) directionDelta = 0; // ↑
@@ -107,10 +107,10 @@ function playerMove(){
   }
   // 이동 안함
   else return 0;
-      
+
   let vPlayerPositionDelta = playerPositionDelta(player.direction - directionDelta);
-  
-  
+
+
   let vPlayerPositionDeltaPixel = getPixel(player.position.x + vPlayerPositionDelta.deltaX * player.speed,
                                             player.position.y - vPlayerPositionDelta.deltaY * player.speed);
 
@@ -121,11 +121,11 @@ function playerMove(){
     vPlayerPositionDeltaPixel[1] == 255 &&
     vPlayerPositionDeltaPixel[2] == 255 &&
     vPlayerPositionDeltaPixel[3] == 255){
-      
+
     console.log("NOTWALL!!");
     player.position.x += vPlayerPositionDelta.deltaX * player.speed;
     player.position.y -= vPlayerPositionDelta.deltaY * player.speed;
-    
+
   }
   else{/*
     let wall = {
@@ -156,10 +156,10 @@ function gamePause(){
 
 // 초기화
 function init(){
-    
-    
+
+
   gamePlay = false;
-    
+
   keyCode = {
     87 : 0,
     65 : 0,
@@ -180,9 +180,9 @@ function init(){
     speed : 1,
     mouseSensitivity : 10
   };
-    
-    
-    
+
+
+
   Math.radians = function(degrees) {
       return degrees * Math.PI / 180;
   };
@@ -193,29 +193,29 @@ function init(){
   hUserScreen.addEventListener('click', function(event){
     hUserScreen.requestPointerLock();
   });
-    
-    
+
+
   //게임 플레이 or 게임 퍼즈
   document.addEventListener('pointerlockchange', function(event){
   let hPause = document.getElementById("pause");
   if(document.pointerLockElement === hUserScreen){
-    
+
     hPause.style.display = "none";
     gamePlay = true;
     console.log("true");
   }
   else{
     gamePlay = false;
-            
+
     hPause.style.marginLeft = userScreen.width / 2 - 100 + "px";
     hPause.style.marginTop = userScreen.height / 2 - 50 + "px";
-      
+
     hPause.style.display = "block";
-    
+
   }
   console.log("game mod change bool = " + gamePlay);
   });
-    
+
 
   // thread 마우스 델타 값 얻기
   hUserScreen.addEventListener('mousemove', function(event){
@@ -223,7 +223,7 @@ function init(){
     mapRotate(event.movementX);
   });
 
-    
+
   let hPlayer = document.getElementById("player");
 
   userScreen = {
@@ -231,8 +231,8 @@ function init(){
     height : window.innerWidth
   }
   resize();
-    
-  
+
+
 
 }
 
@@ -241,7 +241,7 @@ function getPixel(x,y){
   img.crossOrigin = "Anonymous";
   var img = document.getElementById('map');
   var canvas = document.createElement('canvas');
-  
+
   canvas.width = img.width;
   canvas.height = img.height;
   canvas.getContext('2d').drawImage(img, 0, 0, img.width, img.height);
@@ -275,7 +275,7 @@ function isKeyDown(key){
 function render(){
   let hPosition = document.getElementById("position");
   hPosition.innerHTML = "x = " + player.position.x.toFixed(1) + ", y = " + player.position.y.toFixed(1);
-    
+
   let hMap = document.getElementById("map");
 
   //let userScreenCenterWidth = userScreen.width / 2;
@@ -291,7 +291,7 @@ function render(){
   mapMarginL += userScreen.width / 2;
   mapMarginT += userScreen.height / 2;
 
-    
+
   hMap.style.marginLeft = mapMarginL + "px";
   hMap.style.marginTop = mapMarginT + "px";
 
@@ -321,7 +321,7 @@ function update(){
     player.position.x += player.speed;
   }
   */
-  
+
   //console.log(player.position);
   render();
 }
@@ -337,5 +337,5 @@ main();
 
 //--------------08.20----------------//
 function attack(){
-    
+
 }
