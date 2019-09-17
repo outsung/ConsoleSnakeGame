@@ -26,7 +26,8 @@ let keyCode = {
   65 : false, //a
   83 : false, //s
   68 : false, //d
-  77 : false //m
+  77 : false, //m
+  73 : false //i
   //122 : false,
   //123 : false
 }
@@ -37,7 +38,7 @@ let playerInfo = {
     y : 0
   },
   direction : 0,
-  speed : 1,
+  speed : 10,
   mouseSensitivity : 10
 }
 
@@ -49,7 +50,7 @@ let mapInfo = {
   width : 200,
   height : 200,
   blockSize : 20,
-  initV : 50
+  initV : 60
 }
 
 // true = 가능
@@ -98,7 +99,7 @@ function isKeyDown(key){
       key = key.toUpperCase();
       //charCodeAt(아스키코드로 변환)
       key = key.charCodeAt(0);
-      keyCode[key];
+      return keyCode[key];
     }
     else return keyCode[key];
   }
@@ -119,8 +120,8 @@ function resize(){
   if(gameplay === true){
 
     let hPlayer = document.getElementById("player");
-    hPlayer.style.marginLeft = userScreen.width / 2 - 5 + "px";
-    hPlayer.style.marginTop = userScreen.height / 2 - 5 + "px";
+    hPlayer.style.marginLeft = (window.innerWidth / 2) - 5 + "px";
+    hPlayer.style.marginTop = (window.innerHeight / 2) - 5 + "px";
   }
 };
 
@@ -132,12 +133,11 @@ let hUserScreen = document.getElementById("userScreen");
 
 //(2-2-1)
 hUserScreen.addEventListener('click', function(event){
-  //hUserScreen.requestPointerLock();
   if(check.inventory || check.setting) {
 
   }
   else {
-
+    hUserScreen.requestPointerLock();
   }
 });
 
@@ -196,60 +196,56 @@ hMap.height = (mapInfo.height + 2) * mapInfo.blockSize;
 // player position change
 playerInfo.position.x = getRandomInt(0,(mapInfo.width + 2) * mapInfo.blockSize);
 playerInfo.position.y = getRandomInt(0,(mapInfo.height + 2) * mapInfo.blockSize);
+
+resize();
 }
 
-let startTime = new Date().getTime();
-while(new Date().getTime() - startTime > 10){
-  console.log("z  ");
-  // (2-1)----------render--------------------
+function mainLoop(){
+// (2-1)----------render--------------------
+// 2-1-0
+{
+let normalizeX = 0;
+let normalizeY = 0;
 
-  // 2-1-0
-  {
-  let normalizeX = 0;
-  let normalizeY = 0;
+let delta = {
+  x : 0,
+  y : 0
+}
 
-  let delta = {
-    x : 0,
-    y : 0
-  }
-
-  let directionDelta = 0; // dalta 각도
-  let ridian; // 위의 라디안값
+let directionDelta = 0; // dalta 각도
+let ridian; // 위의 라디안값
 
 
 
-  if (isKeyDown("a")) normalizeX += -1;
-  if (isKeyDown("w")) normalizeY += -1;
-  if (isKeyDown("s")) normalizeY += 1;
-  if (isKeyDown("d")) normalizeX += 1;
+if (isKeyDown("a")) normalizeX += -1;
+if (isKeyDown("w")) normalizeY += -1;
+if (isKeyDown("s")) normalizeY += 1;
+if (isKeyDown("d")) normalizeX += 1;
 
-  // 대각선
-  if((normalizeX != 0) && (normalizeY != 0)){
-     if(normalizeX == 1){
-       if(normalizeY == 1) directionDelta = 45; // ↗
-       else directionDelta = 315; // ↖
-     }
-     else{
-       if(normalizeY == 1) directionDelta = 135; // ↘
-       else directionDelta = 225; // ↙
-     }
-  }
-  // 직선
-  else if((normalizeX != 0) || (normalizeY != 0)){
-     if(normalizeY == 0){
-       if(normalizeX == 1) directionDelta = 0; // ↑
-       else directionDelta = 180; // ↓
-     }
-     else{
-       if(normalizeY == 1) directionDelta = 90; // →
-       else directionDelta = 270; // ←
-     }
-  }
-  // 이동안함
-  else {
+// 대각선
+if((normalizeX != 0) && (normalizeY != 0)){
+   if(normalizeX == 1){
+     if(normalizeY == 1) directionDelta = 45; // ↗
+     else directionDelta = 315; // ↖
+   }
+   else{
+     if(normalizeY == 1) directionDelta = 135; // ↘
+     else directionDelta = 225; // ↙
+   }
+}
+// 직선
+else if((normalizeX != 0) || (normalizeY != 0)){
+   if(normalizeY == 0){
+     if(normalizeX == 1) directionDelta = 0; // ↑
+     else directionDelta = 180; // ↓
+   }
+   else{
+     if(normalizeY == 1) directionDelta = 90; // →
+     else directionDelta = 270; // ←
+   }
+}
 
-  }
-
+if((normalizeX != 0) || (normalizeY != 0)){
   ridian = Math.radians(playerInfo.direction - directionDelta);
 
   // parseFloat (string -> float)
@@ -258,180 +254,195 @@ while(new Date().getTime() - startTime > 10){
   delta.y = parseFloat(Math.sin(ridian).toFixed(1));
 
   //이동
-  playerInfo.position.x += delta.x * playerInfo.speed;
-  playerInfo.position.y += delta.y * playerInfo.speed;
-
-  }
-
-  // 2-1-1, 2-1-2
-  {
-  if(isKeyDown("i")){
-    check.inventory = !check.inventory;
-    // key code reset
-  }
-  // esc
-  else if(isKeyDown(27)){
-    check.setting = !check.setting;
-    // key code reset
-  }
-
-  if(isKeyDown("m") && delay.mapChange){
-    delay.mapChange = false;
-    let rule = "B23/S45"
-
-    let aB = [false, false, false, false, false, false, false, false, false, false];
-    let aS = [false, false, false, false, false, false, false, false, false, false];
-
-    let fGetNeighbors = function(x,y){
-        /*
-        [1][0][1]
-        [0][?][0]
-        [0][1][0]
-        */
-
-        let vNeighbors = {
-            alive : 0,
-            dead : 0
-        }
-
-        let i = x-1;
-        let j = y-1;
-
-        while(j <= y + 1)
-        {
-            i = x-1;
-            while(i <= x + 1)
-            {
-                if(j === y && i === x){
-                    i++;
-                    continue;
-                }
-                else{
-                    if(map[j][i]) vNeighbors.alive++;
-                    else vNeighbors.dead++;
-                }
-                i++;
-            }
-            j++;
-        }
-
-        //console.log(vNeighbors.dead + vNeighbors.alive);
-        if(vNeighbors.dead + vNeighbors.alive !== 8) console.log("getNei.. error roop!!");
-        else return vNeighbors;
-    }
-
-
-    let sRuleB = rule.split("/")[0].split("");
-    let sRuleS = rule.split("/")[0].split("");
-
-    //console.log(sRuleB);
-    for(let i in sRuleB)
-    {
-        //console.log(sRuleB[i]);
-        if(typeof(sRuleB[i] *= 1) === "number") aB[sRuleB[i]] = true;
-        else{
-            if(sRuleB[i] !== "B"){
-                console.log("fMapSellularAutomata-[B]error-!");
-            }
-        }
-    }
-    for(let i in sRuleS)
-    {
-        if(typeof(sRuleS[i] *= 1) === "number") aS[sRuleS[i]] = true;
-        else{
-            if(sRuleS[i] !== "S"){
-                console.log("fMapSellularAutomata-[S]error-!");
-            }
-        }
-    }
-
-    console.log(sRuleB);
-    //start
-    let j = 1;
-    let i = 1;
-    let vNeighbors = {};
-
-    while(j < mapInfo.height + 1)
-    {
-        i = 1;
-        while(i < mapInfo.width + 1)
-        {
-            vNeighbors = fGetNeighbors(i,j);
-            //console.log(vNeighbors);
-            if(map[j][i] === true){ // Alive
-                if(aS[vNeighbors.alive] === true);
-                else map[j][i] = false;
-            }
-            else{ // Dead
-                if(aB[vNeighbors.alive] === true){ // B
-                    map[j][i] = true;
-                }
-            }
-
-
-            i++;
-        }
-        //console.log(temp);
-        j++;
-    }
-
-    check.mapChange = true;
-
-  }
-  else{
-    delay.mapChange = true;
-  }
-  }
-
-
-  // (3)----------------update----------------------
-  // 3-2-1
-  {
-  let hMap = document.getElementById("map");
-  hMap.style.marginLeft = window.innerWidth - playerInfo.position.x;
-  hMap.style.marginTop = window.innerHeight - playerInfo.position.y;
-
-  hMap.style.transform = "rotate(" + playerInfo.direction + "deg)";
-  hMap.style.transformOrigin = playerInfo.position.x + "px " +
-                              playerInfo.position.y + "px";
-
-  // mapDraw
-  if(check.mapChange){
-    let hDraw = hMap.getContext("2d");
-    let bs = mapInfo.blockSize;
-
-    //console.log(this.aMap);
-    for(let j in map){
-        //console.log("j = "+j);
-        for(let i in map[0]){
-            //console.log("i = "+i);
-            if(map[j][i] === true){
-              //console.log("alive draw");
-              hDraw.fillStyle = "rgb(0,128,0)";
-              hDraw.fillRect (i*bs, j*bs, bs, bs);
-            }
-            else{
-              //console.log("dead draw");
-              hDraw.fillStyle = "rgb(80,188,223)";
-              hDraw.fillRect (i*bs, j*bs, bs, bs);
-            }
-        }
-    }
-
-    check.mapChange = false;
-  }
-
-  }
-
-
-  //3-2-2;
-  {
-
-
-  }
-  //--------------------------------------------
-  startTime = Date().getTime();
+  playerInfo.position.x += (delta.x * playerInfo.speed);
+  playerInfo.position.y -= (delta.y * playerInfo.speed);
 }
+}
+
+// 2-1-1, 2-1-2
+{
+if(isKeyDown("i")){
+  check.inventory = !check.inventory;
+  console.log(check.inventory+"key");
+  // key code reset
+}
+// esc
+else if(isKeyDown(27)){
+  check.setting = !check.setting;
+  // key code reset
+}
+
+if(isKeyDown("m") && delay.mapChange){
+  console.log("Map change");
+  delay.mapChange = false;
+  let rule = "B5678/S45678";
+
+  let aB = [false, false, false, false, false, false, false, false, false];
+  let aS = [false, false, false, false, false, false, false, false, false];
+
+  let fGetNeighbors = function(x,y){
+      /*
+      [1][0][1]
+      [0][?][0]
+      [0][1][0]
+      */
+
+      let vNeighbors = {
+          alive : 0,
+          dead : 0
+      }
+
+      let i = x-1;
+      let j = y-1;
+
+      while(j <= y + 1)
+      {
+          i = x-1;
+          while(i <= x + 1)
+          {
+              if(j === y && i === x){
+                  i++;
+                  continue;
+              }
+              else{
+                  if(map[j][i]) vNeighbors.alive++;
+                  else vNeighbors.dead++;
+              }
+              i++;
+          }
+          j++;
+      }
+
+      //console.log(vNeighbors.dead + vNeighbors.alive);
+      if(vNeighbors.dead + vNeighbors.alive !== 8) console.log("getNei.. error roop!!");
+      else return vNeighbors;
+  }
+
+
+  let sRuleB = rule.split("/")[0].split("");
+  let sRuleS = rule.split("/")[1].split("");
+
+  //console.log(sRuleB);
+  for(let i in sRuleB)
+  {
+      //console.log(sRuleB[i]);
+      if(!isNaN(sRuleB[i] *= 1)) aB[sRuleB[i]] = true;
+      else{
+          //console.log("a");
+          //if(sRuleB[i] !== "B"){
+          //    console.log("fMapSellularAutomata-[B]error-!");
+          //}
+      }
+  }
+  //console.log(sRuleS);
+  for(let i in sRuleS)
+  {
+      if(!isNaN(sRuleS[i] *= 1)) aS[sRuleS[i]] = true;
+      else{
+          if(sRuleS[i] === "S" ){
+            console.log("error");
+          }
+          //if(sRuleS[i] !== "S"){
+          //    console.log("fMapSellularAutomata-[S]error-!");
+          //}
+      }
+  }
+
+  console.log(aB, aS);
+  //start
+  let j = 1;
+  let i = 1;
+  let vNeighbors = {};
+  let tempMap = map;
+
+  while(j < mapInfo.height + 1)
+  {
+      i = 1;
+      while(i < mapInfo.width + 1)
+      {
+          vNeighbors = fGetNeighbors(i,j);
+          //console.log(vNeighbors);
+          if(map[j][i] === true){ // Alive
+              if(aS[vNeighbors.alive] === true)
+                tempMap[j][i] === true;
+              else tempMap[j][i] = false;
+          }
+          else{ // Dead
+              if(aB[vNeighbors.alive] === true){ // B
+                  tempMap[j][i] = true;
+              }
+              else tempMap[j][i] = false;
+          }
+
+
+          i++;
+      }
+      //console.log(temp);
+      j++;
+  }
+  map = tempMap;
+
+  check.mapChange = true;
+
+}
+else{
+  delay.mapChange = true;
+}
+}
+
+
+
+// (3)----------------update----------------------
+
+// 3-2-1
+{
+let hMap = document.getElementById("map");
+hMap.style.marginLeft = (window.innerWidth / 2) - playerInfo.position.x + "px";
+hMap.style.marginTop = (window.innerHeight / 2) - playerInfo.position.y + "px";
+
+hMap.style.transform = "rotate(" + playerInfo.direction + "deg)";
+hMap.style.transformOrigin = playerInfo.position.x + "px " +
+                            playerInfo.position.y + "px";
+
+// mapDraw
+if(check.mapChange){
+  let hDraw = hMap.getContext("2d");
+  let bs = mapInfo.blockSize;
+
+  //console.log(this.aMap);
+  for(let j in map){
+      //console.log("j = "+j);
+      for(let i in map[0]){
+          //console.log("i = "+i);
+          if(map[j][i] === true){
+            //console.log("alive draw");
+            hDraw.fillStyle = "rgb(0,128,0)";
+            hDraw.fillRect (i*bs, j*bs, bs, bs);
+          }
+          else{
+            //console.log("dead draw");
+            hDraw.fillStyle = "rgb(80,188,223)";
+            hDraw.fillRect (i*bs, j*bs, bs, bs);
+          }
+      }
+  }
+
+  check.mapChange = false;
+}
+
+}
+
+
+//3-2-2;
+{
+
+
+}
+
+
+}
+//--------------------------------------------
+let hInputKey = setInterval(mainLoop, delay.update);
 
 /*
 playerInfo = { // 계정의 설정

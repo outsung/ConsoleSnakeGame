@@ -19,7 +19,7 @@ body{
 
 #map{
   border: 1px solid black;
-  z-index: 3;
+  z-index: 0;
   position: absolute;
   /*width: 100px;
   height: 100px;
@@ -29,7 +29,7 @@ body{
   margin-left: 100px;
   margin-top: 100px;
 }
-/*
+
 #player{
   z-index: 1;
   position: absolute;
@@ -46,4 +46,3 @@ body{
   opacity: 0.5;
   position: absolute;
 }
-*/
