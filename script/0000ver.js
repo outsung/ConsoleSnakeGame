@@ -38,7 +38,7 @@ let playerInfo = {
     y : 0
   },
   direction : 0,
-  speed : 10,
+  speed : 5,
   mouseSensitivity : 10
 }
 
@@ -46,11 +46,17 @@ let playerInfo = {
 
 let map = new Array;
 
+//"B678/S4567" -> road (58) ?
+//B5678/S45678 -> cave 수정
+//B4678 /S35678 -> forest, init(29, 25~30), Cycle(1),
+//B5678/S24567 -> city, init(60, 100) ->
+//B2478/S0145678 -> house init(20)
 let mapInfo = {
+  rule : "B2478/S0145678",
   width : 200,
   height : 200,
-  blockSize : 20,
-  initV : 60
+  blockSize : 10,
+  initV : 40
 }
 
 // true = 가능
@@ -61,6 +67,12 @@ let delay = {
   attack : true
 }
 
+let object = {
+  house : {
+
+  }
+}
+
 
 //--thread-------------------------------
 
@@ -68,9 +80,10 @@ let delay = {
 function keyPress(){
   if(gameplay === true){
     let down = event.keyCode;
-    console.log(down);
+    //console.log(down);
 
     if (down in keyCode){
+      console.log(down+"down");
       keyCode[down] = true;
     }
     else{
@@ -86,6 +99,7 @@ function keyUp(){
     //console.log(upKeyCode);
 
     if (up in keyCode){
+      console.log(up+"up");
       keyCode[up] = false;
     }
     //console.log(keyCode);
@@ -245,6 +259,7 @@ else if((normalizeX != 0) || (normalizeY != 0)){
    }
 }
 
+//이동 했을 때 position update
 if((normalizeX != 0) || (normalizeY != 0)){
   ridian = Math.radians(playerInfo.direction - directionDelta);
 
@@ -275,7 +290,7 @@ else if(isKeyDown(27)){
 if(isKeyDown("m") && delay.mapChange){
   console.log("Map change");
   delay.mapChange = false;
-  let rule = "B5678/S45678";
+  //mapInfo.rule
 
   let aB = [false, false, false, false, false, false, false, false, false];
   let aS = [false, false, false, false, false, false, false, false, false];
@@ -319,8 +334,8 @@ if(isKeyDown("m") && delay.mapChange){
   }
 
 
-  let sRuleB = rule.split("/")[0].split("");
-  let sRuleS = rule.split("/")[1].split("");
+  let sRuleB = mapInfo.rule.split("/")[0].split("");
+  let sRuleS = mapInfo.rule.split("/")[1].split("");
 
   //console.log(sRuleB);
   for(let i in sRuleB)
@@ -455,9 +470,7 @@ playerInfo = { // 계정의 설정
     setting : "VK_esc"
   },
   mouse : {
-
   }
 }
-
 //--------------------------------------------
 */
