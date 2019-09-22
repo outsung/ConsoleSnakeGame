@@ -12,6 +12,217 @@ function getRandomBool(threshold){
     return threshold >= getRandomInt(1,101);
 }
 
+let rect = {
+  left : 0,
+  top : 0,
+  right : 0,
+  bottom : 0
+}
+
+let circle = {
+  x : 0,
+  y : 0,
+  r : 0
+}
+
+function isIntersectCP(c1,p1){
+  let deltax = c1.x - p1.x;
+  let deltay = c1.y - p1.y;
+
+  if( (deltax * deltax + deltay * deltay) > c1.r ) return false;
+  return true;
+}
+
+function isIntersectCR(c1,r1){
+  if( (x in c1) && (y in c1) && (r in c1) &&
+    (left in r1) && (top in r1) && (right in r1) && (bottom in r1) ){
+
+    if( (r1.left <= c1.x && c1.x <= r1.right) ||
+      (r1.top <= c1.y && c1.y <= r1.bottom) ){
+
+      r1.left - c1.r;
+      r1.top - c1.r;
+      r1.right - c1.r;
+      r1.bottom - c1.r;
+
+      if( (r1.left < c1.x && c1.x < r1.right) &&
+        (r1.top < c1.y && c1.y < r1.bottom) ){
+          return true;
+      }
+
+    }
+    else{
+      let tempP = {
+        x : 0,
+        y : 0
+      };
+      tempP.x = r1.left;
+      tempP.y = r1.top;
+      if(isIntersectCP(c1,tempP)) return true;
+
+      tempP.x = r1.left;
+      tempP.y = r1.bottom;
+      if(isIntersectCP(c1,tempP)) return true;
+
+      tempP.x = r1.right;
+      tempP.y = r1.top;
+      if(isIntersectCP(c1,tempP)) return true;
+
+      tempP.x = r1.right;
+      tempP.y = r1.bottom;
+      if(isIntersectCP(c1,tempP)) return true;
+
+    }
+
+    return false;
+
+  }
+  else {
+    console.log("--isIntersectCR_error!--");
+    return -1
+  }
+}
+
+function isIntersectCC(c1,c2){
+
+}
+
+/*
+function aa(){
+
+  let i = 0;
+  let j = 0;
+
+  while(j > ){
+
+    while () {
+        map[][]
+    }
+
+
+  }
+
+}
+*/
+
+function getDistancePP(p1,p2){
+  if( (x in p1) && (y in p1) &&
+    (x in p2) && (y in p2) ){
+    let deltax = p1.x - p2.x;
+    let deltax = p1.y - p2.y;
+
+    return Math.sqrt(deltax * deltax + deltay * deltay);
+  }
+  else{
+    console.log("--getDistancePP_error!--");
+    return -1
+  }
+}
+
+function kMeansClustering(k, x){
+  let min;
+  let total;
+
+  let i = 0;
+  let j = 0;
+  let t = 0;
+
+  let c = [];
+  let r = []; //Xc
+
+  i = 0;
+  while(i < k){
+    c[i] = {
+      x : getRandomInt(mapInfo.width),
+      y : getRandomInt(mapInfo.height),
+      count : 0
+    };
+    i++;
+  }
+
+  t = 0;
+  while(t < 100){
+    j = 0;
+    i = 0;
+    while(j < x.length){
+      min = -1;
+      i = 0;
+      while(i < c.length){
+        if( (min === -1) || (min > getDistancePP(c[i], x[j])) ){
+          min = getDistancePP(c[i], x[j]);
+          r[j] = i;
+        }
+        i++;
+      }
+      j++;
+    }
+
+    let nc = c;
+
+    j = 0;
+    while(j < r.length){
+      nc[r[j]].x += x[j].x;
+      nc[r[j]].y += x[j].y;
+      nc[r[j]].count += 1;
+      j++;
+    }
+
+    i = 0;
+    while(i < c.length){
+      nc[i].x = nc[i].x / nc[i].count;
+      nc[i].y = nc[i].y / nc[i].count;
+      i++;
+    }
+
+    //최적화!
+    i = 0;
+    while(i < c.length){
+      nc[i].x = Math.floor(nc[i].x * 10000) / 10000;
+      nc[i].y = Math.floor(nc[i].y * 10000) / 10000;
+      i++
+    }
+
+    i = 0;
+    while(i < c.length){
+      if(nc[i].x !== c[i].x || nc[i].y !== c[i].y){
+        break;
+      }
+      i++
+    }
+    if(i == c.length) return r;
+
+
+    t++;
+  }
+
+  return r;
+}
+
+function getMapAlive(){
+  let j = 0;
+  let i = 0;
+
+  let res = [];
+
+  j = 0;
+  while(j < mapInfo.height){
+    i = 0;
+    while(i < mapInfo.width){
+      if(map[j][i]){
+        res.push({
+          x : (i * mapInfo.blockSize) + (mapInfo.blockSize / 2),
+          y : (j * mapInfo.blockSize) + (mapInfo.blockSize / 2)
+        });
+      }
+      i++;
+    }
+    j++;
+  }
+
+  return res;
+}
+
+
 //------------------------------------------
 let gameplay = true;
 let check = {
@@ -22,12 +233,20 @@ let check = {
 
 let keyCode = {
   27 : false, //esc
+
   87 : false, //w
   65 : false, //a
   83 : false, //s
   68 : false, //d
+
+  78 : false, //n
   77 : false, //m
-  73 : false //i
+  73 : false, //i
+  72 : false, //h
+
+  49 : false, //1
+  50 : false //2
+
   //122 : false,
   //123 : false
 }
@@ -52,25 +271,38 @@ let map = new Array;
 //B5678/S24567 -> city, init(60, 100) ->
 //B2478/S0145678 -> house init(20)
 let mapInfo = {
-  rule : "B2478/S0145678",
+  rule : "B5678/S45678",
   width : 200,
   height : 200,
   blockSize : 10,
-  initV : 40
+  initV : 60,
+  place : 15
+}
+
+let blockInfo = {
+
 }
 
 // true = 가능
 // false = 불가능
 let delay = {
-  mapChange : true,
+  keyI : true,
+  keyEsc : true,
+
+  key1 : true,
+  key2 : true,
+
+  keyN : true,
+  keyM : true,
+  keyH : true,
+
   update : 10,
   attack : true
 }
 
 let object = {
-  house : {
-
-  }
+  house : rect,
+  tree : circle
 }
 
 
@@ -215,6 +447,7 @@ resize();
 }
 
 function mainLoop(){
+
 // (2-1)----------render--------------------
 // 2-1-0
 {
@@ -268,30 +501,50 @@ if((normalizeX != 0) || (normalizeY != 0)){
   delta.x = parseFloat(Math.cos(ridian).toFixed(1));
   delta.y = parseFloat(Math.sin(ridian).toFixed(1));
 
-  //이동
-  playerInfo.position.x += (delta.x * playerInfo.speed);
-  playerInfo.position.y -= (delta.y * playerInfo.speed);
+
+  // 충돌 감지
+  if(true){
+
+    //이동
+    playerInfo.position.x += (delta.x * playerInfo.speed);
+    playerInfo.position.y -= (delta.y * playerInfo.speed);
+  }
+  else {
+    // sliding vector 이용
+
+  }
 }
 }
 
 // 2-1-1, 2-1-2
 {
-if(isKeyDown("i")){
+
+if(isKeyDown("i") && delay.keyI){
+  delay.keyI = false;
   check.inventory = !check.inventory;
   console.log(check.inventory+"key");
   // key code reset
 }
+else if(!isKeyDown("i") && !delay.keyI){
+  delay.keyI = true;
+}
+
 // esc
-else if(isKeyDown(27)){
+if(isKeyDown(27) && delay.keyEsc){
+  delay.keyEsc = false;
   check.setting = !check.setting;
   // key code reset
 }
+else if(!isKeyDown(27) && !delay.keyEsc){
+  delay.keyEsc = true;
+}
 
-if(isKeyDown("m") && delay.mapChange){
+if(isKeyDown("m") && delay.keyM){
   console.log("Map change");
-  delay.mapChange = false;
+  delay.keyM = false;
   //mapInfo.rule
-
+  //CellularAutomata
+  {
   let aB = [false, false, false, false, false, false, false, false, false];
   let aS = [false, false, false, false, false, false, false, false, false];
 
@@ -396,13 +649,41 @@ if(isKeyDown("m") && delay.mapChange){
       j++;
   }
   map = tempMap;
-
+  }
   check.mapChange = true;
 
 }
-else{
-  delay.mapChange = true;
+else if(!isKeyDown("m") && !delay.keyM){
+  delay.keyM = true;
 }
+
+
+if(isKeyDown("h") && delay.keyH){
+
+  delay.keyH = false;
+}
+else if(!isKeyDown("h") && !delay.keyH){
+  delay.keyH = true;
+}
+
+
+if(isKeyDown("n") && delay.keyN){
+  let i = 0;
+
+  let kMeansClustering(mapInfo.place,getMapAlive());
+
+  while(){
+
+  }
+
+
+  delay.keyN = false;
+}
+else if(!isKeyDown("n") && !delay.keyN){
+  delay.keyN = true;
+}
+
+
 }
 
 
