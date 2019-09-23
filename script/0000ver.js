@@ -34,8 +34,8 @@ function isIntersectCP(c1,p1){
 }
 
 function isIntersectCR(c1,r1){
-  if( (x in c1) && (y in c1) && (r in c1) &&
-    (left in r1) && (top in r1) && (right in r1) && (bottom in r1) ){
+  if( ("x" in c1) && ("y" in c1) && ("r" in c1) &&
+    ("left" in r1) && ("top" in r1) && ("right" in r1) && ("bottom" in r1) ){
 
     if( (r1.left <= c1.x && c1.x <= r1.right) ||
       (r1.top <= c1.y && c1.y <= r1.bottom) ){
@@ -89,27 +89,21 @@ function isIntersectCC(c1,c2){
 
 /*
 function aa(){
-
   let i = 0;
   let j = 0;
-
   while(j > ){
-
     while () {
         map[][]
     }
-
-
   }
-
 }
 */
 
 function getDistancePP(p1,p2){
-  if( (x in p1) && (y in p1) &&
-    (x in p2) && (y in p2) ){
+  if( ("x" in p1) && ("y" in p1) &&
+    ("x" in p2) && ("y" in p2) ){
     let deltax = p1.x - p2.x;
-    let deltax = p1.y - p2.y;
+    let deltay = p1.y - p2.y;
 
     return Math.sqrt(deltax * deltax + deltay * deltay);
   }
@@ -127,19 +121,20 @@ function kMeansClustering(k, x){
   let j = 0;
   let t = 0;
 
+  let nc = [];
   let c = [];
   let r = []; //Xc
 
   i = 0;
   while(i < k){
     c[i] = {
-      x : getRandomInt(mapInfo.width),
-      y : getRandomInt(mapInfo.height),
+      x : getRandomInt(0, (mapInfo.width + 2) * mapInfo.blockSize),
+      y : getRandomInt(0, (mapInfo.height + 2) * mapInfo.blockSize),
       count : 0
     };
     i++;
   }
-
+  //console.log(c);
   t = 0;
   while(t < 100){
     j = 0;
@@ -157,7 +152,7 @@ function kMeansClustering(k, x){
       j++;
     }
 
-    let nc = c;
+    nc = c;
 
     j = 0;
     while(j < r.length){
@@ -189,13 +184,13 @@ function kMeansClustering(k, x){
       }
       i++
     }
-    if(i == c.length) return r;
+    if(i == c.length) return [r, c];
 
 
     t++;
   }
 
-  return r;
+  return [r, c];
 }
 
 function getMapAlive(){
@@ -208,7 +203,7 @@ function getMapAlive(){
   while(j < mapInfo.height){
     i = 0;
     while(i < mapInfo.width){
-      if(map[j][i]){
+      if(map[j][i] != 0){
         res.push({
           x : (i * mapInfo.blockSize) + (mapInfo.blockSize / 2),
           y : (j * mapInfo.blockSize) + (mapInfo.blockSize / 2)
@@ -228,7 +223,8 @@ let gameplay = true;
 let check = {
   inventory : false,
   setting : false,
-  mapChange : true
+  mapChange : true,
+  kMeans : false
 }
 
 let keyCode = {
@@ -275,12 +271,19 @@ let mapInfo = {
   width : 200,
   height : 200,
   blockSize : 10,
-  initV : 60,
-  place : 15
+  initV : 40,
+  placeCount : 6,
+  place : new Array
 }
 
 let blockInfo = {
-
+  dead : "rgb(80,188,223)",
+  "c1" : "rgb(100,128,0)",
+  "c2" : "rgb(63,11,27)",
+  "c3" : "rgb(122,22,49)",
+  "c4" : "rgb(207,66,60)",
+  "c5" : "rgb(252,125,73)",
+  "c6" : "rgb(255,212,98)"
 }
 
 // true = 가능
@@ -419,11 +422,12 @@ while(j < mapInfo.height + 2)
         if(i === 0 || i === mapInfo.width + 1 ||
           j === 0 || j === mapInfo.height + 1){
             //console.log("i = "+ i +" j = " + j);
-            temp.push(false);
+            temp.push(0);
             i++;
         }
         else{
-            temp.push(getRandomBool(mapInfo.initV));
+            if(getRandomBool(mapInfo.initV)) temp.push(1);
+            else temp.push(0);
             i++;
         }
     }
@@ -540,7 +544,6 @@ else if(!isKeyDown(27) && !delay.keyEsc){
 }
 
 if(isKeyDown("m") && delay.keyM){
-  console.log("Map change");
   delay.keyM = false;
   //mapInfo.rule
   //CellularAutomata
@@ -573,7 +576,7 @@ if(isKeyDown("m") && delay.keyM){
                   continue;
               }
               else{
-                  if(map[j][i]) vNeighbors.alive++;
+                  if(map[j][i] != 0) vNeighbors.alive++;
                   else vNeighbors.dead++;
               }
               i++;
@@ -630,16 +633,16 @@ if(isKeyDown("m") && delay.keyM){
       {
           vNeighbors = fGetNeighbors(i,j);
           //console.log(vNeighbors);
-          if(map[j][i] === true){ // Alive
+          if(map[j][i] != 0){ // Alive
               if(aS[vNeighbors.alive] === true)
-                tempMap[j][i] === true;
-              else tempMap[j][i] = false;
+                tempMap[j][i] = 1;
+              else tempMap[j][i] = 0;
           }
           else{ // Dead
               if(aB[vNeighbors.alive] === true){ // B
-                  tempMap[j][i] = true;
+                  tempMap[j][i] = 1;
               }
-              else tempMap[j][i] = false;
+              else tempMap[j][i] = 0;
           }
 
 
@@ -668,16 +671,28 @@ else if(!isKeyDown("h") && !delay.keyH){
 
 
 if(isKeyDown("n") && delay.keyN){
-  let i = 0;
+  delay.keyN = false;
+  let t = 0;
 
-  let kMeansClustering(mapInfo.place,getMapAlive());
+  let x = getMapAlive();
+  //console.log(x);
+  let kMeans = kMeansClustering(mapInfo.placeCount, x);
+  let r = kMeans[0];
 
-  while(){
+  mapInfo.place = kMeans[1];
 
+  console.log(r);
+
+
+  t = 0;
+  while(t < r.length){
+    map[(x[t].y / mapInfo.blockSize - 0.5)]
+      [(x[t].x / mapInfo.blockSize - 0.5)] = r[t] + 1;
+    t++;
   }
 
-
-  delay.keyN = false;
+  check.kMeans = true;
+  check.mapChange = true;
 }
 else if(!isKeyDown("n") && !delay.keyN){
   delay.keyN = true;
@@ -702,6 +717,7 @@ hMap.style.transformOrigin = playerInfo.position.x + "px " +
 
 // mapDraw
 if(check.mapChange){
+  console.log("Map change");
   let hDraw = hMap.getContext("2d");
   let bs = mapInfo.blockSize;
 
@@ -709,21 +725,32 @@ if(check.mapChange){
   for(let j in map){
       //console.log("j = "+j);
       for(let i in map[0]){
-          //console.log("i = "+i);
-          if(map[j][i] === true){
+          //console.log("x : " + i + " y : " + j + " c : " + map[j][i]);
+          if(map[j][i] != 0){
             //console.log("alive draw");
-            hDraw.fillStyle = "rgb(0,128,0)";
+            if("c" + map[j][i] in blockInfo){
+              hDraw.fillStyle = blockInfo["c" + map[j][i]];
+            }
+            else hDraw.fillStyle = blockInfo["c0"];
             hDraw.fillRect (i*bs, j*bs, bs, bs);
           }
           else{
             //console.log("dead draw");
-            hDraw.fillStyle = "rgb(80,188,223)";
+            hDraw.fillStyle = blockInfo.dead;
             hDraw.fillRect (i*bs, j*bs, bs, bs);
           }
       }
   }
 
   check.mapChange = false;
+}
+if(check.kMeans){
+  let hDraw = hMap.getContext("2d");
+  let bs = mapInfo.blockSize;
+
+   circle.arc(100, 35, 25, 0, 2 * Math.PI);
+
+  check.kMeans = false;
 }
 
 }
