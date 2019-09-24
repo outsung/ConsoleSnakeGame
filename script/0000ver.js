@@ -4,6 +4,7 @@ Math.radians = function(degrees) {
 };
 
 
+// !&& max , && min
 function getRandomInt(min, max){
   return Math.floor(Math.random() * (max - min)) + min;
 }
@@ -115,109 +116,82 @@ function getDistancePP(p1,p2){
 
 function kMeansClustering(k, x){
   let min;
-  let total;
 
   let i = 0;
-  let j = 0;
-  let t = 0;
 
   let nc = [];
   let c = [];
   let r = []; //Xc
 
-  i = 0;
-  while(i < k){
+  for(let i = 0; i < k; i++){
     c[i] = {
       x : getRandomInt(0, (mapInfo.width + 2) * mapInfo.blockSize),
       y : getRandomInt(0, (mapInfo.height + 2) * mapInfo.blockSize),
       count : 0
     };
-    i++;
   }
   //console.log(c);
-  t = 0;
-  while(t < 100){
-    j = 0;
-    i = 0;
-    while(j < x.length){
+  for(let t = 0; t < 100; t++){
+    for(let j = 0; j < x.length; j++){
       min = -1;
-      i = 0;
-      while(i < c.length){
+      for(let i = 0; i < c.length; i++){
         if( (min === -1) || (min > getDistancePP(c[i], x[j])) ){
           min = getDistancePP(c[i], x[j]);
           r[j] = i;
         }
-        i++;
       }
-      j++;
     }
 
     nc = c;
-
-    j = 0;
-    while(j < r.length){
+    for(let j = 0; j < r.length; j++){
       nc[r[j]].x += x[j].x;
       nc[r[j]].y += x[j].y;
       nc[r[j]].count += 1;
-      j++;
     }
 
-    i = 0;
-    while(i < c.length){
+    for(let i = 0; i < c.length; i++){
       nc[i].x = nc[i].x / nc[i].count;
       nc[i].y = nc[i].y / nc[i].count;
-      i++;
     }
 
     //최적화!
-    i = 0;
-    while(i < c.length){
+    for(let i = 0; i < c.length; i++){
       nc[i].x = Math.floor(nc[i].x * 10000) / 10000;
       nc[i].y = Math.floor(nc[i].y * 10000) / 10000;
-      i++
     }
 
-    i = 0;
-    while(i < c.length){
+    for(i = 0; i < c.length; i++){
       if(nc[i].x !== c[i].x || nc[i].y !== c[i].y){
         break;
       }
-      i++
     }
     if(i == c.length) return [r, c];
-
-
-    t++;
   }
 
   return [r, c];
 }
 
 function getMapAlive(){
-  let j = 0;
-  let i = 0;
-
   let res = [];
 
-  j = 0;
-  while(j < mapInfo.height){
-    i = 0;
-    while(i < mapInfo.width){
+  for(let j = 0; j < mapInfo.height + 2; j++){
+    for(let i = 0; i < mapInfo.width + 2; i++){
       if(map[j][i] != 0){
         res.push({
           x : (i * mapInfo.blockSize) + (mapInfo.blockSize / 2),
           y : (j * mapInfo.blockSize) + (mapInfo.blockSize / 2)
         });
       }
-      i++;
     }
-    j++;
   }
 
   return res;
 }
 
+function getMapListPlace(c){
+  let x = getMapAlive();
 
+}
 //------------------------------------------
 let gameplay = true;
 let check = {
@@ -271,19 +245,19 @@ let mapInfo = {
   width : 200,
   height : 200,
   blockSize : 10,
-  initV : 40,
+  initV : 50,
   placeCount : 6,
   place : new Array
 }
 
 let blockInfo = {
-  dead : "rgb(80,188,223)",
-  "c1" : "rgb(100,128,0)",
-  "c2" : "rgb(63,11,27)",
-  "c3" : "rgb(122,22,49)",
-  "c4" : "rgb(207,66,60)",
-  "c5" : "rgb(252,125,73)",
-  "c6" : "rgb(255,212,98)"
+  dead : {r:80, g:188, b:223},
+  c1 : {r:100, g:128, b:0},
+  c2 : {r:63, g:11, b:27},
+  c3 : {r:122, g:22, b:49},
+  c4 : {r:207, g:66, b:60},
+  c5 : {r:252, g:125, b:73},
+  c6 : {r:255, g:212, b:98}
 }
 
 // true = 가능
@@ -409,31 +383,25 @@ hUserScreen.addEventListener('mousemove', function(event){
 // (1)---------------------------------------
 //getMap
 {
-let j = 0;
-let i = 0;
 let temp = new Array;
 
-while(j < mapInfo.height + 2)
+for(let j = 0; j < mapInfo.height + 2; j++)
 {
-    i = 0;
     temp = new Array;
-    while(i < mapInfo.width + 2)
+    for(let i = 0; i < mapInfo.width + 2; i++)
     {
         if(i === 0 || i === mapInfo.width + 1 ||
           j === 0 || j === mapInfo.height + 1){
             //console.log("i = "+ i +" j = " + j);
             temp.push(0);
-            i++;
         }
         else{
             if(getRandomBool(mapInfo.initV)) temp.push(1);
             else temp.push(0);
-            i++;
         }
     }
     //console.log(temp);
     map.push(temp);
-    j++;
 }
 console.log("x "+mapInfo.width+" y "+mapInfo.height+" setting..");
 
@@ -547,48 +515,37 @@ if(isKeyDown("m") && delay.keyM){
   delay.keyM = false;
   //mapInfo.rule
   //CellularAutomata
-  {
   let aB = [false, false, false, false, false, false, false, false, false];
   let aS = [false, false, false, false, false, false, false, false, false];
 
   let fGetNeighbors = function(x,y){
-      /*
-      [1][0][1]
-      [0][?][0]
-      [0][1][0]
-      */
+    /*
+    [1][0][1]
+    [0][?][0]
+    [0][1][0]
+    */
 
-      let vNeighbors = {
-          alive : 0,
-          dead : 0
-      }
+    let vNeighbors = {
+      alive : 0,
+      dead : 0
+    }
 
-      let i = x-1;
-      let j = y-1;
-
-      while(j <= y + 1)
+    for(let j = y - 1; j <= y + 1; j++)
+    {
+      for(let i = x-1; i <= x + 1; i++)
       {
-          i = x-1;
-          while(i <= x + 1)
-          {
-              if(j === y && i === x){
-                  i++;
-                  continue;
-              }
-              else{
-                  if(map[j][i] != 0) vNeighbors.alive++;
-                  else vNeighbors.dead++;
-              }
-              i++;
-          }
-          j++;
+        if(j === y && i === x) continue;
+        else{
+            if(map[j][i] != 0) vNeighbors.alive++;
+            else vNeighbors.dead++;
+        }
       }
+    }
 
-      //console.log(vNeighbors.dead + vNeighbors.alive);
-      if(vNeighbors.dead + vNeighbors.alive !== 8) console.log("getNei.. error roop!!");
-      else return vNeighbors;
+    //console.log(vNeighbors.dead + vNeighbors.alive);
+    if(vNeighbors.dead + vNeighbors.alive !== 8) console.log("getNei.. error roop!!");
+    else return vNeighbors;
   }
-
 
   let sRuleB = mapInfo.rule.split("/")[0].split("");
   let sRuleS = mapInfo.rule.split("/")[1].split("");
@@ -621,38 +578,30 @@ if(isKeyDown("m") && delay.keyM){
 
   console.log(aB, aS);
   //start
-  let j = 1;
   let i = 1;
   let vNeighbors = {};
   let tempMap = map;
 
-  while(j < mapInfo.height + 1)
-  {
-      i = 1;
-      while(i < mapInfo.width + 1)
-      {
-          vNeighbors = fGetNeighbors(i,j);
-          //console.log(vNeighbors);
-          if(map[j][i] != 0){ // Alive
-              if(aS[vNeighbors.alive] === true)
-                tempMap[j][i] = 1;
-              else tempMap[j][i] = 0;
-          }
-          else{ // Dead
-              if(aB[vNeighbors.alive] === true){ // B
-                  tempMap[j][i] = 1;
-              }
-              else tempMap[j][i] = 0;
-          }
-
-
-          i++;
+  for(let j = 1; j < mapInfo.height + 1; j++){
+    for(let i = 1; i < mapInfo.width + 1; i++){
+      vNeighbors = fGetNeighbors(i,j);
+      //console.log(vNeighbors);
+      if(map[j][i] != 0){ // Alive
+          if(aS[vNeighbors.alive] === true)
+            tempMap[j][i] = 1;
+          else tempMap[j][i] = 0;
       }
-      //console.log(temp);
-      j++;
+      else{ // Dead
+          if(aB[vNeighbors.alive] === true){ // B
+              tempMap[j][i] = 1;
+          }
+          else tempMap[j][i] = 0;
+      }
+    }
+    //console.log(temp);
   }
   map = tempMap;
-  }
+
   check.mapChange = true;
 
 }
@@ -672,7 +621,6 @@ else if(!isKeyDown("h") && !delay.keyH){
 
 if(isKeyDown("n") && delay.keyN){
   delay.keyN = false;
-  let t = 0;
 
   let x = getMapAlive();
   //console.log(x);
@@ -681,14 +629,13 @@ if(isKeyDown("n") && delay.keyN){
 
   mapInfo.place = kMeans[1];
 
+  console.log(mapInfo.place);
   console.log(r);
 
 
-  t = 0;
-  while(t < r.length){
+  for(let t = 0; t < r.length; t++){
     map[(x[t].y / mapInfo.blockSize - 0.5)]
       [(x[t].x / mapInfo.blockSize - 0.5)] = r[t] + 1;
-    t++;
   }
 
   check.kMeans = true;
@@ -722,21 +669,32 @@ if(check.mapChange){
   let bs = mapInfo.blockSize;
 
   //console.log(this.aMap);
-  for(let j in map){
+  for(let j = 0; j < mapInfo.width + 2; j++){
       //console.log("j = "+j);
-      for(let i in map[0]){
+      for(let i = 0; i < mapInfo.height + 2; i++){
           //console.log("x : " + i + " y : " + j + " c : " + map[j][i]);
           if(map[j][i] != 0){
             //console.log("alive draw");
             if("c" + map[j][i] in blockInfo){
-              hDraw.fillStyle = blockInfo["c" + map[j][i]];
+              hDraw.fillStyle = "rgb(" + blockInfo["c" + map[j][i]].r +
+                                  "," + blockInfo["c" + map[j][i]].g +
+                                  "," + blockInfo["c" + map[j][i]].b + ")";
             }
-            else hDraw.fillStyle = blockInfo["c0"];
+            else{
+              hDraw.fillStyle =
+              "rgb(" + blockInfo[map[j][i] % mapInfo.placeCount].r +
+              "," + blockInfo[map[j][i] % mapInfo.placeCount].g +
+              "," + blockInfo[map[j][i] % mapInfo.placeCount].b + ")";
+            }
             hDraw.fillRect (i*bs, j*bs, bs, bs);
           }
           else{
             //console.log("dead draw");
-            hDraw.fillStyle = blockInfo.dead;
+            //hDraw.fillStyle = blockInfo.dead;
+            hDraw.fillStyle =
+            "rgb(" + blockInfo.dead.r +
+            "," + blockInfo.dead  .g +
+            "," + blockInfo.dead.b + ")";
             hDraw.fillRect (i*bs, j*bs, bs, bs);
           }
       }
@@ -745,12 +703,80 @@ if(check.mapChange){
   check.mapChange = false;
 }
 if(check.kMeans){
-  let hDraw = hMap.getContext("2d");
-  let bs = mapInfo.blockSize;
-
-   circle.arc(100, 35, 25, 0, 2 * Math.PI);
-
   check.kMeans = false;
+  let hDraw = hMap.getContext("2d");
+  //let bs = mapInfo.blockSize;
+
+  let alive = getMapAlive();
+  let x = 0;
+  let y = 0;
+
+  // 중심 원
+  for(let i = 0; i < mapInfo.placeCount; i++){
+    hDraw.beginPath();
+    //console.log(mapInfo.place[i].x, mapInfo.place[i].y);
+    hDraw.fillStyle = "rgb(112,137,255,0.5)";
+    hDraw.arc(mapInfo.place[i].x, mapInfo.place[i].y, 20,
+       0, 2 * Math.PI);
+    hDraw.fill();
+    hDraw.closePath();
+  }
+
+  // 선
+  for(let i = 0; i < alive.length; i++){
+
+    x = alive[i].x / mapInfo.blockSize - 0.5;
+    y = alive[i].y / mapInfo.blockSize - 0.5;
+
+    hDraw.beginPath();
+
+    //hDraw.strokeStyle = blockInfo["c" + map[y][x]];
+    hDraw.strokeStyle =
+    "rgb(" + blockInfo["c" + map[y][x]].r +
+    "," + blockInfo["c" + map[y][x]].g +
+    "," + blockInfo["c" + map[y][x]].b + ", 0.3)";
+
+    //hDraw.fillStyle = "rgb(102,232,184,0.3)";
+
+    hDraw.moveTo(mapInfo.place[map[y][x] - 1].x,
+                  mapInfo.place[map[y][x] - 1].y);
+
+    hDraw.lineTo(alive[i].x, alive[i].y);
+
+    hDraw.closePath();
+    hDraw.stroke();
+  }
+
+  /*
+  for(let j = 0; j < mapInfo.height + 1; j++){
+    for(let i = 0; i < mapInfo.width + 1; i++){
+      c = map[j][i];
+      if(c !== 0){
+        //console.log(map[j][i]);
+        hDraw.beginPath();
+
+        hDraw.fillStyle = blockInfo["c" + c];
+        //hDraw.fillStyle = "rgb(102,232,184,0.3)";
+
+        hDraw.moveTo(mapInfo.place[map[j][i]].x,
+                      mapInfo.place[map[j][i]].y);
+
+        hDraw.lineTo( ((i + 0.5) * mapInfo.blockSize),
+                      ((j + 0.5) * mapInfo.blockSize) );
+
+        hDraw.closePath();
+        hDraw.stroke();
+      }
+    }
+  }
+  */
+  /*
+  i = 0;
+  while(i < ){
+
+  }
+  */
+
 }
 
 }
