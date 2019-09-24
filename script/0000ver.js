@@ -171,6 +171,7 @@ function kMeansClustering(k, x){
   return [r, c];
 }
 
+// [j][i] -> x : , y :
 function getMapAlive(){
   let res = [];
 
@@ -188,17 +189,25 @@ function getMapAlive(){
   return res;
 }
 
+/*
 function getMapListPlace(c){
   let x = getMapAlive();
 
+  for(let i = 0; i < x.length; i++){
+
+  }
 }
+*/
+//function
+
 //------------------------------------------
 let gameplay = true;
 let check = {
   inventory : false,
   setting : false,
   mapChange : true,
-  kMeans : false
+  kMeans : false,
+  treeGrow : false
 }
 
 let keyCode = {
@@ -213,6 +222,7 @@ let keyCode = {
   77 : false, //m
   73 : false, //i
   72 : false, //h
+  84 : false, //t
 
   49 : false, //1
   50 : false //2
@@ -228,7 +238,8 @@ let playerInfo = {
   },
   direction : 0,
   speed : 5,
-  mouseSensitivity : 10
+  mouseSensitivity : 10,
+  scale : 30 // defult = 100
 }
 
 //나중에 scale 변경 할 때 같이 변경됨
@@ -244,15 +255,17 @@ let mapInfo = {
   rule : "B5678/S45678",
   width : 200,
   height : 200,
-  blockSize : 10,
-  initV : 50,
-  placeCount : 6,
+  blockSize : Math.floor(50 * (playerInfo.scale / 100)),
+  initV : 55,
+  placeCount : Math.floor(75 - playerInfo.scale / 2),
   place : new Array
 }
 
+
 let blockInfo = {
+  count : 6,
   dead : {r:80, g:188, b:223},
-  c1 : {r:100, g:128, b:0},
+  c1 : {r:60, g:89, b:89},
   c2 : {r:63, g:11, b:27},
   c3 : {r:122, g:22, b:49},
   c4 : {r:207, g:66, b:60},
@@ -272,14 +285,31 @@ let delay = {
   keyN : true,
   keyM : true,
   keyH : true,
+  keyT : true,
 
   update : 10,
   attack : true
 }
 
+
+let objectInfo = {
+  tree : {
+    truck : {
+      color : {r:140, g:78, b:42},
+      r : Math.floor(7 * (playerInfo.scale / 100))
+    },
+    leaves : {
+      color : {r:92, g:115, b:112},
+      r : Math.floor(50 * (playerInfo.scale / 100))
+    },
+    initV : 1
+  }
+}
+
+
 let object = {
-  house : rect,
-  tree : circle
+  house : new Array,
+  tree : new Array
 }
 
 
@@ -292,7 +322,7 @@ function keyPress(){
     //console.log(down);
 
     if (down in keyCode){
-      console.log(down+"down");
+      //console.log(down+"down");
       keyCode[down] = true;
     }
     else{
@@ -308,7 +338,7 @@ function keyUp(){
     //console.log(upKeyCode);
 
     if (up in keyCode){
-      console.log(up+"up");
+      //console.log(up+"up");
       keyCode[up] = false;
     }
     //console.log(keyCode);
@@ -474,7 +504,7 @@ if((normalizeX != 0) || (normalizeY != 0)){
   delta.y = parseFloat(Math.sin(ridian).toFixed(1));
 
 
-  // 충돌 감지
+  // 벽 충돌 감지
   if(true){
 
     //이동
@@ -576,7 +606,7 @@ if(isKeyDown("m") && delay.keyM){
       }
   }
 
-  console.log(aB, aS);
+  //console.log(aB, aS);
   //start
   let i = 1;
   let vNeighbors = {};
@@ -611,8 +641,8 @@ else if(!isKeyDown("m") && !delay.keyM){
 
 
 if(isKeyDown("h") && delay.keyH){
-
   delay.keyH = false;
+
 }
 else if(!isKeyDown("h") && !delay.keyH){
   delay.keyH = true;
@@ -629,8 +659,8 @@ if(isKeyDown("n") && delay.keyN){
 
   mapInfo.place = kMeans[1];
 
-  console.log(mapInfo.place);
-  console.log(r);
+  console.log(mapInfo.placeCount);
+  //console.log(r);
 
 
   for(let t = 0; t < r.length; t++){
@@ -644,6 +674,91 @@ if(isKeyDown("n") && delay.keyN){
 else if(!isKeyDown("n") && !delay.keyN){
   delay.keyN = true;
 }
+
+
+if(isKeyDown("t") && delay.keyT){
+  delay.keyT = false;
+  check.mapChange = true;
+  check.treeGrow = true;
+
+  let temp = new Array;
+  let x = new Array;
+  let i = 0;
+  let j = 0;
+
+
+  // init tree !!!!
+  if(object.tree.length === 0){
+    x = getMapAlive();
+    for(let t = 0; t < x.length; t++){
+      i = x[t].x / mapInfo.blockSize - 0.5;
+      j = x[t].y / mapInfo.blockSize - 0.5;
+      if(map[j][i] === 1){
+        console.log(map[j][i]);
+        
+        if(getRandomBool(objectInfo.tree.initV)){
+          object.tree.push({
+            x : getRandomInt(i * mapInfo.blockSize + 1,
+                            (i+1) * mapInfo.blockSize),
+            y : getRandomInt(j * mapInfo.blockSize + 1,
+                            (j+1) * mapInfo.blockSize)
+          });
+        }
+
+      }
+      else if( (map[j][i] % blockInfo.count + 1) === 1){
+        console.log(map[j][i]);
+        if(getRandomBool(objectInfo.tree.initV)){
+          object.tree.push({
+            x : getRandomInt(i * mapInfo.blockSize + 1,
+                            (i+1) * mapInfo.blockSize),
+            y : getRandomInt(j * mapInfo.blockSize + 1,
+                            (j+1) * mapInfo.blockSize)
+          });
+        }
+      }
+    }
+    //console.log(object.tree.length);
+  }
+  else{ // tree grow
+    //tree delete
+    temp = new Array;
+    for(let t = 0; t < object.tree.length; t++){
+      i = Math.floor(object.tree[t].x / mapInfo.blockSize);
+      j = Math.floor(object.tree[t].x / mapInfo.blockSize);
+      if(map[j][i] === 1){
+        temp.push(object.tree[t]);
+      }
+      else if ( (map[j][i] % blockInfo.count + 1) === 1){
+        temp.push(object.tree[t]);
+      }
+      else{
+        continue;
+      }
+      /*
+      if(map[j][i] === 1){
+        t++;
+      }
+      else if((map[j][i] % blockInfo.count + 1) === 1){
+        t++;
+      }
+      else{
+        console.log("del");
+        object.tree.splice(t,1);
+        continue;
+      }
+      */
+
+    }
+    object.tree = temp;
+  }
+
+}
+else if(!isKeyDown("t") && !delay.keyT){
+  delay.keyT = true;
+}
+
+
 
 
 }
@@ -664,6 +779,7 @@ hMap.style.transformOrigin = playerInfo.position.x + "px " +
 
 // mapDraw
 if(check.mapChange){
+  check.mapChange = false;
   console.log("Map change");
   let hDraw = hMap.getContext("2d");
   let bs = mapInfo.blockSize;
@@ -676,15 +792,17 @@ if(check.mapChange){
           if(map[j][i] != 0){
             //console.log("alive draw");
             if("c" + map[j][i] in blockInfo){
-              hDraw.fillStyle = "rgb(" + blockInfo["c" + map[j][i]].r +
-                                  "," + blockInfo["c" + map[j][i]].g +
-                                  "," + blockInfo["c" + map[j][i]].b + ")";
+              hDraw.fillStyle =
+              "rgb(" + blockInfo["c" + map[j][i]].r +
+              "," + blockInfo["c" + map[j][i]].g +
+              "," + blockInfo["c" + map[j][i]].b + ")";
             }
             else{
+              //console.log(map[j][i] % blockInfo.count + 1);
               hDraw.fillStyle =
-              "rgb(" + blockInfo[map[j][i] % mapInfo.placeCount].r +
-              "," + blockInfo[map[j][i] % mapInfo.placeCount].g +
-              "," + blockInfo[map[j][i] % mapInfo.placeCount].b + ")";
+              "rgb(" + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].r +
+              "," + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].g +
+              "," + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].b + ")";
             }
             hDraw.fillRect (i*bs, j*bs, bs, bs);
           }
@@ -700,7 +818,7 @@ if(check.mapChange){
       }
   }
 
-  check.mapChange = false;
+
 }
 if(check.kMeans){
   check.kMeans = false;
@@ -708,44 +826,60 @@ if(check.kMeans){
   //let bs = mapInfo.blockSize;
 
   let alive = getMapAlive();
-  let x = 0;
-  let y = 0;
+  let i = 0;
+  let j = 0;
 
   // 중심 원
-  for(let i = 0; i < mapInfo.placeCount; i++){
+
+  for(let c = 0; c < mapInfo.placeCount; c++){
     hDraw.beginPath();
     //console.log(mapInfo.place[i].x, mapInfo.place[i].y);
     hDraw.fillStyle = "rgb(112,137,255,0.5)";
-    hDraw.arc(mapInfo.place[i].x, mapInfo.place[i].y, 20,
+    hDraw.arc(mapInfo.place[c].x, mapInfo.place[c].y, 20,
        0, 2 * Math.PI);
     hDraw.fill();
     hDraw.closePath();
   }
 
   // 선
-  for(let i = 0; i < alive.length; i++){
 
-    x = alive[i].x / mapInfo.blockSize - 0.5;
-    y = alive[i].y / mapInfo.blockSize - 0.5;
+
+  for(let t = 0; t < alive.length; t++){
+
+    i = alive[t].x / mapInfo.blockSize - 0.5;
+    j = alive[t].y / mapInfo.blockSize - 0.5;
 
     hDraw.beginPath();
-
-    //hDraw.strokeStyle = blockInfo["c" + map[y][x]];
+    /*
     hDraw.strokeStyle =
-    "rgb(" + blockInfo["c" + map[y][x]].r +
-    "," + blockInfo["c" + map[y][x]].g +
-    "," + blockInfo["c" + map[y][x]].b + ", 0.3)";
+    "rgb(" + blockInfo["c" + map[j][i]].r +
+    "," + blockInfo["c" + map[j][i]].g +
+    "," + blockInfo["c" + map[j][i]].b + ", 0.3)";
+    */
+    if("c" + map[j][i] in blockInfo){
+      hDraw.strokeStyle =
+      "rgb(" + blockInfo["c" + map[j][i]].r +
+      "," + blockInfo["c" + map[j][i]].g +
+      "," + blockInfo["c" + map[j][i]].b + ",0.3)";
+    }
+    else{
+      //console.log(map[j][i] % blockInfo.count + 1);
+      hDraw.strokeStyle =
+      "rgb(" + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].r +
+      "," + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].g +
+      "," + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].b + ",0.3)";
+    }
 
-    //hDraw.fillStyle = "rgb(102,232,184,0.3)";
 
-    hDraw.moveTo(mapInfo.place[map[y][x] - 1].x,
-                  mapInfo.place[map[y][x] - 1].y);
+    hDraw.moveTo(mapInfo.place[map[j][i] - 1].x,
+                  mapInfo.place[map[j][i] - 1].y);
 
-    hDraw.lineTo(alive[i].x, alive[i].y);
+    hDraw.lineTo(alive[t].x, alive[t].y);
 
     hDraw.closePath();
     hDraw.stroke();
   }
+
 
   /*
   for(let j = 0; j < mapInfo.height + 1; j++){
@@ -754,30 +888,54 @@ if(check.kMeans){
       if(c !== 0){
         //console.log(map[j][i]);
         hDraw.beginPath();
-
         hDraw.fillStyle = blockInfo["c" + c];
         //hDraw.fillStyle = "rgb(102,232,184,0.3)";
-
         hDraw.moveTo(mapInfo.place[map[j][i]].x,
                       mapInfo.place[map[j][i]].y);
-
         hDraw.lineTo( ((i + 0.5) * mapInfo.blockSize),
                       ((j + 0.5) * mapInfo.blockSize) );
-
         hDraw.closePath();
         hDraw.stroke();
       }
     }
   }
   */
-  /*
-  i = 0;
-  while(i < ){
-
-  }
-  */
 
 }
+if(check.treeGrow){
+  check.treeGrow = false;
+  let hDraw = hMap.getContext("2d");
+
+  for(let i = 0; i < object.tree.length; i++){
+
+    //truck
+    hDraw.beginPath();
+    hDraw.fillStyle =
+    "rgb(" + objectInfo.tree.truck.color.r +
+    "," + objectInfo.tree.truck.color.g +
+    "," + objectInfo.tree.truck.color.b + ")";
+    hDraw.arc(object.tree[i].x, object.tree[i].y,
+              objectInfo.tree.truck.r,
+              0, 2 * Math.PI);
+    hDraw.fill();
+    hDraw.closePath();
+
+    //leaves
+    hDraw.beginPath();
+    hDraw.fillStyle =
+    "rgb(" + objectInfo.tree.leaves.color.r +
+    "," + objectInfo.tree.leaves.color.g +
+    "," + objectInfo.tree.leaves.color.b + ")";
+    hDraw.arc(object.tree[i].x, object.tree[i].y,
+              objectInfo.tree.leaves.r,
+              0, 2 * Math.PI);
+    hDraw.fill();
+    hDraw.closePath();
+
+  }
+
+}
+
 
 }
 
