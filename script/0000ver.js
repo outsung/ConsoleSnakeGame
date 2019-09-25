@@ -27,11 +27,31 @@ let circle = {
 }
 
 function isIntersectCP(c1,p1){
+  /*if( ("x" in p1) && ("y" in p1) &&
+    ("x" in c1) && ("y" in c1) && ("r" in c1) ){
+      */
+  //console.log(c1);
+  //console.log(p1);
   let deltax = c1.x - p1.x;
   let deltay = c1.y - p1.y;
 
-  if( (deltax * deltax + deltay * deltay) > c1.r ) return false;
-  return true;
+  //console.log("x"+deltax +"y"+deltay);
+  //console.log("r"+c1.r);
+  if( (deltax * deltax + deltay * deltay) > (c1.r * c1.r) ){
+    //console.log("intersect tree & player");
+    return false;
+  }
+  else{
+    //console.log("intersect");
+    return true;
+  }
+  /*
+  }
+  else {
+    console.log("--isIntersectCR_error!--");
+    return -1;
+  }
+  */
 }
 
 function isIntersectCR(c1,r1){
@@ -80,12 +100,18 @@ function isIntersectCR(c1,r1){
   }
   else {
     console.log("--isIntersectCR_error!--");
-    return -1
+    return -1;
   }
 }
 
 function isIntersectCC(c1,c2){
+  let deltax = c1.x - c2.x;
+  let deltay = c1.y - c2.y;
 
+  let distance = Math.sqrt(deltax * deltax + deltay * deltay);
+
+  if(distance > (c1.r + c2.r)) return false;
+  else return true;
 }
 
 /*
@@ -190,15 +216,19 @@ function getMapAlive(){
 }
 
 /*
-function getMapListPlace(c){
-  let x = getMapAlive();
+function (){
+  let j = playerInfo.position.y / mapInfo.blockSize - 0.5;
+  let i = playerInfo.position.x / mapInfo.blockSize - 0.5;
 
-  for(let i = 0; i < x.length; i++){
-
-  }
+  return j, i;
 }
 */
-//function
+/*
+function getPlayerPlace(){
+  mapInfo.placeCount
+  return c;
+}
+*/
 
 //------------------------------------------
 let gameplay = true;
@@ -234,7 +264,8 @@ let keyCode = {
 let playerInfo = {
   position : {
     x : 0,
-    y : 0
+    y : 0,
+    r : 10,
   },
   direction : 0,
   speed : 5,
@@ -296,11 +327,11 @@ let objectInfo = {
   tree : {
     truck : {
       color : {r:140, g:78, b:42},
-      r : Math.floor(7 * (playerInfo.scale / 100))
+      r : Math.floor(14 * (playerInfo.scale / 100))
     },
     leaves : {
       color : {r:92, g:115, b:112},
-      r : Math.floor(50 * (playerInfo.scale / 100))
+      r : Math.floor(100 * (playerInfo.scale / 100))
     },
     initV : 1
   }
@@ -439,6 +470,10 @@ console.log("x "+mapInfo.width+" y "+mapInfo.height+" setting..");
 let hMap = document.getElementById("map");
 hMap.width = (mapInfo.width + 2) * mapInfo.blockSize;
 hMap.height = (mapInfo.height + 2) * mapInfo.blockSize;
+
+let hObject = document.getElementById("object");
+hObject.width = (mapInfo.width + 2) * mapInfo.blockSize;
+hObject.height = (mapInfo.height + 2) * mapInfo.blockSize;
 //console.log("_____________"+res);
 
 // player position change
@@ -504,17 +539,70 @@ if((normalizeX != 0) || (normalizeY != 0)){
   delta.y = parseFloat(Math.sin(ridian).toFixed(1));
 
 
-  // 벽 충돌 감지
-  if(true){
+  for(let i = 0; i < object.tree.length; i++){
+    //나무 확인
+    if( isIntersectCC({
+      x:(object.tree[i].x),
+      y:(object.tree[i].y),
+      r:(objectInfo.tree.truck.r)},{
+      x:(playerInfo.position.x + (delta.x * playerInfo.speed)),
+      y:(playerInfo.position.y - (delta.y * playerInfo.speed)),
+      r:(playerInfo.position.r)}) )
+    {
+      let ndelta = new Object;
+      let nRidian = Math.atan2( (p.x - c.x), (p.y - c.y) );
+      // n 노멀라이즈
+      ndelta.x = parseFloat(Math.cos(nRidian).toFixed(1));
+      ndelta.y = parseFloat(Math.sin(nRidian).toFixed(1));
 
-    //이동
-    playerInfo.position.x += (delta.x * playerInfo.speed);
-    playerInfo.position.y -= (delta.y * playerInfo.speed);
-  }
-  else {
-    // sliding vector 이용
+      let projection = new Object;
+      //projection = n * ( p * n )
+      projection.x = ndelta.x * (delta.x * ndelta.x);
+      projection.y = ndelta.y * (delta.y * ndelta.y);
 
+      delta.x =- projection.x;
+      delta.y =- projection.y;
+
+      //playerInfo.position.y += (deltay * 2);
+      //playerInfo.position.x -= (deltax * 2);
+      console.log("wall");
+
+    }
   }
+
+  /*
+  //벽 부딫
+  if(isIntersectCR({})){
+    //sliding vector
+  }
+  */
+  
+
+  playerInfo.position.x += (delta.x * playerInfo.speed);
+  playerInfo.position.y -= (delta.y * playerInfo.speed);
+
+
+
+  // 나무 충돌 감지
+  for(let i = 0; i < object.tree.length; i++){
+    //leaves
+    if( isIntersectCP({
+      x:(object.tree[i].x),
+      y:(object.tree[i].y),
+      r:(objectInfo.tree.leaves.r)},{
+      x:(playerInfo.position.x),
+      y:(playerInfo.position.y)}) )
+    {
+      object.tree[i].intersect = true;
+      check.treeGrow = true;
+    }
+    else{
+      object.tree[i].intersect = false;
+      check.treeGrow = true;
+    }
+  }
+
+
 }
 }
 
@@ -659,10 +747,11 @@ if(isKeyDown("n") && delay.keyN){
 
   mapInfo.place = kMeans[1];
 
-  console.log(mapInfo.placeCount);
+  console.log("placeCount : " + mapInfo.placeCount);
   //console.log(r);
 
 
+  // x,y -> [j][i]
   for(let t = 0; t < r.length; t++){
     map[(x[t].y / mapInfo.blockSize - 0.5)]
       [(x[t].x / mapInfo.blockSize - 0.5)] = r[t] + 1;
@@ -679,6 +768,7 @@ else if(!isKeyDown("n") && !delay.keyN){
 if(isKeyDown("t") && delay.keyT){
   delay.keyT = false;
   check.mapChange = true;
+  check.kMeans = true;
   check.treeGrow = true;
 
   let temp = new Array;
@@ -686,34 +776,21 @@ if(isKeyDown("t") && delay.keyT){
   let i = 0;
   let j = 0;
 
-
   // init tree !!!!
   if(object.tree.length === 0){
     x = getMapAlive();
     for(let t = 0; t < x.length; t++){
       i = x[t].x / mapInfo.blockSize - 0.5;
       j = x[t].y / mapInfo.blockSize - 0.5;
-      if(map[j][i] === 1){
-        console.log(map[j][i]);
-        
+      if( (map[j][i] % blockInfo.count + 1) === 1){
+        //console.log(map[j][i]);
         if(getRandomBool(objectInfo.tree.initV)){
           object.tree.push({
             x : getRandomInt(i * mapInfo.blockSize + 1,
                             (i+1) * mapInfo.blockSize),
             y : getRandomInt(j * mapInfo.blockSize + 1,
-                            (j+1) * mapInfo.blockSize)
-          });
-        }
-
-      }
-      else if( (map[j][i] % blockInfo.count + 1) === 1){
-        console.log(map[j][i]);
-        if(getRandomBool(objectInfo.tree.initV)){
-          object.tree.push({
-            x : getRandomInt(i * mapInfo.blockSize + 1,
-                            (i+1) * mapInfo.blockSize),
-            y : getRandomInt(j * mapInfo.blockSize + 1,
-                            (j+1) * mapInfo.blockSize)
+                            (j+1) * mapInfo.blockSize),
+            intersect : false
           });
         }
       }
@@ -725,11 +802,8 @@ if(isKeyDown("t") && delay.keyT){
     temp = new Array;
     for(let t = 0; t < object.tree.length; t++){
       i = Math.floor(object.tree[t].x / mapInfo.blockSize);
-      j = Math.floor(object.tree[t].x / mapInfo.blockSize);
-      if(map[j][i] === 1){
-        temp.push(object.tree[t]);
-      }
-      else if ( (map[j][i] % blockInfo.count + 1) === 1){
+      j = Math.floor(object.tree[t].y / mapInfo.blockSize);
+      if ( (map[j][i] % blockInfo.count + 1) === 1){
         temp.push(object.tree[t]);
       }
       else{
@@ -777,6 +851,17 @@ hMap.style.transform = "rotate(" + playerInfo.direction + "deg)";
 hMap.style.transformOrigin = playerInfo.position.x + "px " +
                             playerInfo.position.y + "px";
 
+
+let hObject = document.getElementById("object");
+hObject.style.marginLeft = (window.innerWidth / 2) - playerInfo.position.x + "px";
+hObject.style.marginTop = (window.innerHeight / 2) - playerInfo.position.y + "px";
+
+hObject.style.transform = "rotate(" + playerInfo.direction + "deg)";
+hObject.style.transformOrigin = playerInfo.position.x + "px " +
+                            playerInfo.position.y + "px";
+
+
+
 // mapDraw
 if(check.mapChange){
   check.mapChange = false;
@@ -791,19 +876,10 @@ if(check.mapChange){
           //console.log("x : " + i + " y : " + j + " c : " + map[j][i]);
           if(map[j][i] != 0){
             //console.log("alive draw");
-            if("c" + map[j][i] in blockInfo){
-              hDraw.fillStyle =
-              "rgb(" + blockInfo["c" + map[j][i]].r +
-              "," + blockInfo["c" + map[j][i]].g +
-              "," + blockInfo["c" + map[j][i]].b + ")";
-            }
-            else{
-              //console.log(map[j][i] % blockInfo.count + 1);
-              hDraw.fillStyle =
-              "rgb(" + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].r +
-              "," + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].g +
-              "," + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].b + ")";
-            }
+            hDraw.fillStyle =
+            "rgb(" + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].r +
+            "," + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].g +
+            "," + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].b + ")";
             hDraw.fillRect (i*bs, j*bs, bs, bs);
           }
           else{
@@ -850,26 +926,12 @@ if(check.kMeans){
     j = alive[t].y / mapInfo.blockSize - 0.5;
 
     hDraw.beginPath();
-    /*
-    hDraw.strokeStyle =
-    "rgb(" + blockInfo["c" + map[j][i]].r +
-    "," + blockInfo["c" + map[j][i]].g +
-    "," + blockInfo["c" + map[j][i]].b + ", 0.3)";
-    */
-    if("c" + map[j][i] in blockInfo){
-      hDraw.strokeStyle =
-      "rgb(" + blockInfo["c" + map[j][i]].r +
-      "," + blockInfo["c" + map[j][i]].g +
-      "," + blockInfo["c" + map[j][i]].b + ",0.3)";
-    }
-    else{
-      //console.log(map[j][i] % blockInfo.count + 1);
-      hDraw.strokeStyle =
-      "rgb(" + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].r +
-      "," + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].g +
-      "," + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].b + ",0.3)";
-    }
 
+    //console.log(map[j][i] % blockInfo.count + 1);
+    hDraw.strokeStyle =
+    "rgb(" + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].r +
+    "," + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].g +
+    "," + blockInfo["c" + (map[j][i] % blockInfo.count + 1)].b + ",0.3)";
 
     hDraw.moveTo(mapInfo.place[map[j][i] - 1].x,
                   mapInfo.place[map[j][i] - 1].y);
@@ -904,10 +966,17 @@ if(check.kMeans){
 }
 if(check.treeGrow){
   check.treeGrow = false;
-  let hDraw = hMap.getContext("2d");
+  let hDraw = hObject.getContext("2d"); // Object!!
+  let alpha = "";
+
+  hDraw.clearRect(0, 0, (mapInfo.width + 2) * mapInfo.blockSize,
+                      (mapInfo.height + 2) * mapInfo.blockSize);
+
+  //console.log("tree.length : " + object.tree.length);
 
   for(let i = 0; i < object.tree.length; i++){
-
+    //console.log("tree [" + i + "] (x : " + object.tree[i].x +
+    //                            ", y : " + object.tree[i].y + ")");
     //truck
     hDraw.beginPath();
     hDraw.fillStyle =
@@ -921,11 +990,18 @@ if(check.treeGrow){
     hDraw.closePath();
 
     //leaves
+    //console.log(object.tree[i].intersect);
+    if(object.tree[i].intersect){
+      alpha = ",0.3)";
+    }
+    else {
+      alpha = ")";
+    }
     hDraw.beginPath();
     hDraw.fillStyle =
     "rgb(" + objectInfo.tree.leaves.color.r +
     "," + objectInfo.tree.leaves.color.g +
-    "," + objectInfo.tree.leaves.color.b + ")";
+    "," + objectInfo.tree.leaves.color.b + alpha;
     hDraw.arc(object.tree[i].x, object.tree[i].y,
               objectInfo.tree.leaves.r,
               0, 2 * Math.PI);
