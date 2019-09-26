@@ -215,6 +215,57 @@ function getMapAlive(){
   return res;
 }
 
+// (S = P - n*(P*n) )
+function getSlidingVectorCC(delta, tI){
+  let nplayerx = (playerInfo.position.x + (delta.x * playerInfo.speed));
+  let nplayery = (playerInfo.position.y + (delta.y * playerInfo.speed));
+
+  let npL;
+  let np = new Object;
+  let p = new Object;
+
+  let deltaS = new Object;
+  let s = new Object;
+
+  let n = new Object;
+  let nRidian = Math.atan2( (nplayerx - object.tree[tI].x),
+                            (nplayery - object.tree[tI].y) );
+  // n 노멀라이즈
+  n.x = parseFloat(Math.cos(nRidian).toFixed(1));
+  n.y = parseFloat(Math.sin(nRidian).toFixed(1));
+
+  npL = (playerInfo.position.r + objectInfo.tree.truck.r) -
+          getDistancePP({x:nplayerx, y:nplayery},
+                      {x:object.tree[tI].x, y:object.tree[tI].y});
+
+  p.x = object.tree[tI].x + n.x * objectInfo.tree.truck.r;
+  p.y = object.tree[tI].y + n.y * objectInfo.tree.truck.r;
+
+  np.x = p.x - n.x * npL;
+  np.y = p.y - n.y * npL;
+
+
+  //회전
+  deltaS.x = p.x - np.x;
+  deltaS.y = p.y - np.y;
+
+  //normalize
+  deltaS.x /= Math.sqrt(deltaS.x * deltaS.x + deltaS.y * deltaS.y);
+  deltaS.y /= Math.sqrt(deltaS.x * deltaS.x + deltaS.y * deltaS.y);
+
+  // Math.radians(90);
+
+  s.x = deltaS.x * Math.cos(Math.radians(90)) -
+        deltaS.y * Math.sin(Math.radians(90));
+
+  s.y = deltaS.x * Math.sin(Math.radians(90)) -
+        deltaS.y * Math.cos(Math.radians(90));
+
+  playerInfo.position.x += (n.x * npL*1.3);
+  playerInfo.position.y -= (n.y * npL*1.3);
+
+  return s;
+}
 /*
 function (){
   let j = playerInfo.position.y / mapInfo.blockSize - 0.5;
@@ -265,7 +316,7 @@ let playerInfo = {
   position : {
     x : 0,
     y : 0,
-    r : 10,
+    r : 25,
   },
   direction : 0,
   speed : 5,
@@ -327,11 +378,11 @@ let objectInfo = {
   tree : {
     truck : {
       color : {r:140, g:78, b:42},
-      r : Math.floor(14 * (playerInfo.scale / 100))
+      r : Math.floor(37 * (playerInfo.scale / 100))
     },
     leaves : {
       color : {r:92, g:115, b:112},
-      r : Math.floor(100 * (playerInfo.scale / 100))
+      r : Math.floor(200 * (playerInfo.scale / 100))
     },
     initV : 1
   }
@@ -404,8 +455,8 @@ function resize(){
   if(gameplay === true){
 
     let hPlayer = document.getElementById("player");
-    hPlayer.style.marginLeft = (window.innerWidth / 2) - 5 + "px";
-    hPlayer.style.marginTop = (window.innerHeight / 2) - 5 + "px";
+    hPlayer.style.marginLeft = (window.innerWidth / 2) - (playerInfo.position.r) + "px";
+    hPlayer.style.marginTop = (window.innerHeight / 2) - (playerInfo.position.r) + "px";
   }
 };
 
@@ -531,6 +582,7 @@ else if((normalizeX != 0) || (normalizeY != 0)){
 
 //이동 했을 때 position update
 if((normalizeX != 0) || (normalizeY != 0)){
+  let checkMove = true;
   ridian = Math.radians(playerInfo.direction - directionDelta);
 
   // parseFloat (string -> float)
@@ -538,8 +590,10 @@ if((normalizeX != 0) || (normalizeY != 0)){
   delta.x = parseFloat(Math.cos(ridian).toFixed(1));
   delta.y = parseFloat(Math.sin(ridian).toFixed(1));
 
-
-  for(let i = 0; i < object.tree.length; i++){
+  let i = 0;
+  //while(i !== object.tree.length){
+    //i = 0
+    for(i = 0; i < object.tree.length; i++){
     //나무 확인
     if( isIntersectCC({
       x:(object.tree[i].x),
@@ -548,9 +602,11 @@ if((normalizeX != 0) || (normalizeY != 0)){
       x:(playerInfo.position.x + (delta.x * playerInfo.speed)),
       y:(playerInfo.position.y - (delta.y * playerInfo.speed)),
       r:(playerInfo.position.r)}) )
-    {
+    {/*
       let ndelta = new Object;
-      let nRidian = Math.atan2( (p.x - c.x), (p.y - c.y) );
+      let nRidian = Math.atan2(
+        (playerInfo.position.x + (delta.x * playerInfo.speed) - object.tree[i].x),
+        (playerInfo.position.y - (delta.y * playerInfo.speed) - object.tree[i].y) );
       // n 노멀라이즈
       ndelta.x = parseFloat(Math.cos(nRidian).toFixed(1));
       ndelta.y = parseFloat(Math.sin(nRidian).toFixed(1));
@@ -565,33 +621,39 @@ if((normalizeX != 0) || (normalizeY != 0)){
 
       //playerInfo.position.y += (deltay * 2);
       //playerInfo.position.x -= (deltax * 2);
+      */
+      checkMove = false;
+      getSlidingVectorCC({x:delta.x,y:delta.y},i);
       console.log("wall");
-
+      break;
     }
   }
-
+//}
   /*
   //벽 부딫
   if(isIntersectCR({})){
     //sliding vector
   }
   */
-  
 
-  playerInfo.position.x += (delta.x * playerInfo.speed);
-  playerInfo.position.y -= (delta.y * playerInfo.speed);
+  if(checkMove === true){
+    playerInfo.position.x += (delta.x * playerInfo.speed);
+    playerInfo.position.y -= (delta.y * playerInfo.speed);
+  }
+
 
 
 
   // 나무 충돌 감지
   for(let i = 0; i < object.tree.length; i++){
     //leaves
-    if( isIntersectCP({
+    if( isIntersectCC({
       x:(object.tree[i].x),
       y:(object.tree[i].y),
       r:(objectInfo.tree.leaves.r)},{
       x:(playerInfo.position.x),
-      y:(playerInfo.position.y)}) )
+      y:(playerInfo.position.y),
+      r:(playerInfo.position.r) }) )
     {
       object.tree[i].intersect = true;
       check.treeGrow = true;
