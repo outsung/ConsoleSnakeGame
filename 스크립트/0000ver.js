@@ -216,6 +216,7 @@ function getMapAlive(){
 }
 
 // (S = P - n*(P*n) )
+/*
 function getSlidingVectorCC(delta, tI){
   let nplayerx = (playerInfo.position.x + (delta.x * playerInfo.speed));
   let nplayery = (playerInfo.position.y + (delta.y * playerInfo.speed));
@@ -261,16 +262,55 @@ function getSlidingVectorCC(delta, tI){
   s.y = deltaS.x * Math.sin(Math.radians(90)) -
         deltaS.y * Math.cos(Math.radians(90));
 
-  playerInfo.position.x += (n.x * npL*1.3);
-  playerInfo.position.y -= (n.y * npL*1.3);
+  playerInfo.position.x += (n.x * npL);
+  playerInfo.position.y += (n.y * npL);
 
   return s;
 }
+*/
+function getSlidingVectorCC(sP,eP,t){
+  let p = new Object;
+  let n = new Object;
+  let res = new Object;
+
+  let delta = new Object;
+
+  let dis = getDistancePP(eP,t);
+  let sumR = t.r + eP.r;
+
+  let ridian = Math.atan2( (sP.x - eP.x),
+                            (sP.y - eP.y) );
+  delta.x = parseFloat(Math.cos(ridian).toFixed(1));
+  delta.y = parseFloat(Math.sin(ridian).toFixed(1));
+
+  p.x = eP.x - (sumR * delta.x) + (dis * delta.x);
+  p.y = eP.y - (sumR * delta.y) + (dis * delta.y);
+
+  let nRidian = Math.atan2( (p.x - t.x),
+                            (p.y - t.y) );
+  // n 노멀라이즈
+  n.x = parseFloat(Math.cos(nRidian).toFixed(1));
+  n.y = parseFloat(Math.sin(nRidian).toFixed(1));
+
+  res.x = p.x - ((p.x * n.x) + (p.y * n.y)) * n.x;
+  res.y = p.y - ((p.x * n.x) + (p.y * n.y)) * n.y;
+
+  //getDistancePP(n,res); == speed
+  //sP == oldP;
+  /* delta.x, delta.y
+  let ridian = Math.atan2( (sP.x - res.x),
+                            (sP.y - res.y) );
+  // n 노멀라이즈
+  pDelta.x = parseFloat(Math.cos(nRidian).toFixed(1));
+  pDelta.y = parseFloat(Math.sin(nRidian).toFixed(1));
+  */
+  return res;
+}
+
 /*
 function (){
   let j = playerInfo.position.y / mapInfo.blockSize - 0.5;
   let i = playerInfo.position.x / mapInfo.blockSize - 0.5;
-
   return j, i;
 }
 */
@@ -534,6 +574,13 @@ playerInfo.position.y = getRandomInt(0,(mapInfo.height + 2) * mapInfo.blockSize)
 resize();
 }
 
+{
+let hPlayer = document.getElementById("player");
+hPlayer.style.width = playerInfo.position.r * 2 + "px";
+hPlayer.style.height = playerInfo.position.r * 2 + "px";
+
+}
+
 function mainLoop(){
 
 // (2-1)----------render--------------------
@@ -590,40 +637,26 @@ if((normalizeX != 0) || (normalizeY != 0)){
   delta.x = parseFloat(Math.cos(ridian).toFixed(1));
   delta.y = parseFloat(Math.sin(ridian).toFixed(1));
 
-  let i = 0;
-  //while(i !== object.tree.length){
-    //i = 0
-    for(i = 0; i < object.tree.length; i++){
-    //나무 확인
-    if( isIntersectCC({
-      x:(object.tree[i].x),
-      y:(object.tree[i].y),
-      r:(objectInfo.tree.truck.r)},{
+  let nplayer = new Object;
+  let tree = new Object;
+  let res;
+  for(let i = 0; i < object.tree.length; i++){
+  //나무 확인
+    nplayer = {
       x:(playerInfo.position.x + (delta.x * playerInfo.speed)),
       y:(playerInfo.position.y - (delta.y * playerInfo.speed)),
-      r:(playerInfo.position.r)}) )
-    {/*
-      let ndelta = new Object;
-      let nRidian = Math.atan2(
-        (playerInfo.position.x + (delta.x * playerInfo.speed) - object.tree[i].x),
-        (playerInfo.position.y - (delta.y * playerInfo.speed) - object.tree[i].y) );
-      // n 노멀라이즈
-      ndelta.x = parseFloat(Math.cos(nRidian).toFixed(1));
-      ndelta.y = parseFloat(Math.sin(nRidian).toFixed(1));
-
-      let projection = new Object;
-      //projection = n * ( p * n )
-      projection.x = ndelta.x * (delta.x * ndelta.x);
-      projection.y = ndelta.y * (delta.y * ndelta.y);
-
-      delta.x =- projection.x;
-      delta.y =- projection.y;
-
-      //playerInfo.position.y += (deltay * 2);
-      //playerInfo.position.x -= (deltax * 2);
-      */
+      r:(playerInfo.position.r)
+    };
+    tree = {
+      x:(object.tree[i].x),
+      y:(object.tree[i].y),
+      r:(objectInfo.tree.truck.r)
+    };
+    if( isIntersectCC(nplayer,tree) )
+    {
       checkMove = false;
-      getSlidingVectorCC({x:delta.x,y:delta.y},i);
+      res = getSlidingVectorCC(playerInfo.position,nplayer,tree);
+
       console.log("wall");
       break;
     }
@@ -639,6 +672,10 @@ if((normalizeX != 0) || (normalizeY != 0)){
   if(checkMove === true){
     playerInfo.position.x += (delta.x * playerInfo.speed);
     playerInfo.position.y -= (delta.y * playerInfo.speed);
+  }
+  else{
+    playerInfo.position.x += (res.x * playerInfo.speed);
+    playerInfo.position.y -= (res.y * playerInfo.speed);
   }
 
 
@@ -1026,53 +1063,6 @@ if(check.kMeans){
   */
 
 }
-if(check.treeGrow){
-  check.treeGrow = false;
-  let hDraw = hObject.getContext("2d"); // Object!!
-  let alpha = "";
-
-  hDraw.clearRect(0, 0, (mapInfo.width + 2) * mapInfo.blockSize,
-                      (mapInfo.height + 2) * mapInfo.blockSize);
-
-  //console.log("tree.length : " + object.tree.length);
-
-  for(let i = 0; i < object.tree.length; i++){
-    //console.log("tree [" + i + "] (x : " + object.tree[i].x +
-    //                            ", y : " + object.tree[i].y + ")");
-    //truck
-    hDraw.beginPath();
-    hDraw.fillStyle =
-    "rgb(" + objectInfo.tree.truck.color.r +
-    "," + objectInfo.tree.truck.color.g +
-    "," + objectInfo.tree.truck.color.b + ")";
-    hDraw.arc(object.tree[i].x, object.tree[i].y,
-              objectInfo.tree.truck.r,
-              0, 2 * Math.PI);
-    hDraw.fill();
-    hDraw.closePath();
-
-    //leaves
-    //console.log(object.tree[i].intersect);
-    if(object.tree[i].intersect){
-      alpha = ",0.3)";
-    }
-    else {
-      alpha = ")";
-    }
-    hDraw.beginPath();
-    hDraw.fillStyle =
-    "rgb(" + objectInfo.tree.leaves.color.r +
-    "," + objectInfo.tree.leaves.color.g +
-    "," + objectInfo.tree.leaves.color.b + alpha;
-    hDraw.arc(object.tree[i].x, object.tree[i].y,
-              objectInfo.tree.leaves.r,
-              0, 2 * Math.PI);
-    hDraw.fill();
-    hDraw.closePath();
-
-  }
-
-}
 
 
 }
@@ -1080,7 +1070,55 @@ if(check.treeGrow){
 
 //3-2-2;
 {
+let hObject = document.getElementById("object");
 
+if(check.treeGrow){
+    check.treeGrow = false;
+    let hDraw = hObject.getContext("2d"); // Object!!
+    let alpha = "";
+
+    hDraw.clearRect(0, 0, (mapInfo.width + 2) * mapInfo.blockSize,
+                        (mapInfo.height + 2) * mapInfo.blockSize);
+
+    //console.log("tree.length : " + object.tree.length);
+
+    for(let i = 0; i < object.tree.length; i++){
+      //console.log("tree [" + i + "] (x : " + object.tree[i].x +
+      //                            ", y : " + object.tree[i].y + ")");
+      //truck
+      hDraw.beginPath();
+      hDraw.fillStyle =
+      "rgb(" + objectInfo.tree.truck.color.r +
+      "," + objectInfo.tree.truck.color.g +
+      "," + objectInfo.tree.truck.color.b + ")";
+      hDraw.arc(object.tree[i].x, object.tree[i].y,
+                objectInfo.tree.truck.r,
+                0, 2 * Math.PI);
+      hDraw.fill();
+      hDraw.closePath();
+
+      //leaves
+      //console.log(object.tree[i].intersect);
+      if(object.tree[i].intersect){
+        alpha = ",0.3)";
+      }
+      else {
+        alpha = ")";
+      }
+      hDraw.beginPath();
+      hDraw.fillStyle =
+      "rgb(" + objectInfo.tree.leaves.color.r +
+      "," + objectInfo.tree.leaves.color.g +
+      "," + objectInfo.tree.leaves.color.b + alpha;
+      hDraw.arc(object.tree[i].x, object.tree[i].y,
+                objectInfo.tree.leaves.r,
+                0, 2 * Math.PI);
+      hDraw.fill();
+      hDraw.closePath();
+
+    }
+
+  }
 
 }
 
